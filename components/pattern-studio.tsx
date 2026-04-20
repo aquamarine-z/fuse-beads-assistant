@@ -142,7 +142,7 @@ export function PatternStudio() {
     patternKey === currentPatternKey;
   const planCellSize = useMemo(() => cellSize + 4, [cellSize]);
 
-  const topColors = useMemo(() => deferredPattern?.counts.slice(0, 12) ?? [], [deferredPattern]);
+  const allColors = useMemo(() => deferredPattern?.counts ?? [], [deferredPattern]);
 
   function buildExportFileName(kind: "preview" | "chart") {
     const baseName = sanitizeFileNameSegment(imageTitle || t("untitledImage"));
@@ -1231,12 +1231,15 @@ export function PatternStudio() {
                         pending={isPending}
                       />
                       <div className="grid gap-4 rounded-[1.75rem] border border-border/70 bg-background/80 p-4">
-                        <p className="text-sm font-medium text-muted-foreground">
-                          {t("planColorsLegend")}
+                        <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                          <span>{t("planColorsLegend")}</span>
+                          <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-[11px]">
+                            {t("usedColorTotal", {count: deferredPattern?.counts.length ?? 0})}
+                          </Badge>
                         </p>
-                        {topColors.length ? (
+                        {allColors.length ? (
                           <div className="flex flex-wrap items-start gap-2">
-                            {topColors.map(({ color, count }) => (
+                            {allColors.map(({ color, count }) => (
                               <div
                                 key={`plan-colors-${color.tag}`}
                                 className="grid w-[10.75rem] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-xs"
@@ -1309,13 +1312,16 @@ export function PatternStudio() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-xl">
                     <SwatchBook className="text-primary" />
-                    {t("colorStatsTitle")}
+                    <span>{t("colorStatsTitle")}</span>
+                    <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-[11px]">
+                      {t("usedColorTotal", {count: deferredPattern?.counts.length ?? 0})}
+                    </Badge>
                   </CardTitle>
                   <CardDescription>{t("colorStatsDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-3">
-                  {topColors.length ? (
-                    topColors.map(({ color, count }) => (
+                  {allColors.length ? (
+                    allColors.map(({ color, count }) => (
                       <div
                         key={color.tag}
                         className="flex items-center justify-between rounded-[1.35rem] border border-border/70 bg-background/80 px-4 py-3"

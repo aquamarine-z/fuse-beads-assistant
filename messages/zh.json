@@ -119,6 +119,7 @@
     "sourceEmpty": "还没有导入图片，先从左侧选择一张源图。",
     "colorStatsTitle": "颜色统计",
     "colorStatsDesc": "自动汇总本次图纸中使用最多的颜色与编码。",
+    "usedColorTotal": "共 {count} 色",
     "colorCountUnit": "{count} 粒",
     "beadUnitShort": "粒",
     "colorStatsEmpty": "生成图纸后，常用颜色会按数量排序显示在这里。",

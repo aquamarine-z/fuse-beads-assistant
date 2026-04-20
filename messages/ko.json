@@ -119,6 +119,7 @@
     "sourceEmpty": "아직 이미지가 없습니다. 왼쪽에서 이미지를 선택해 주세요.",
     "colorStatsTitle": "색상 통계",
     "colorStatsDesc": "이번 도안에서 많이 사용된 색상과 코드를 확인할 수 있습니다.",
+    "usedColorTotal": "총 {count}색",
     "colorCountUnit": "{count} 개",
     "beadUnitShort": "개",
     "colorStatsEmpty": "도안이 생성되면 많이 사용된 색상이 여기에 정렬되어 표시됩니다.",

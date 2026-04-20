@@ -119,6 +119,7 @@
     "sourceEmpty": "No image has been imported yet. Choose one from the left panel.",
     "colorStatsTitle": "Color summary",
     "colorStatsDesc": "See the most-used colors and their tags for this pattern.",
+    "usedColorTotal": "{count} colors",
     "colorCountUnit": "{count} beads",
     "beadUnitShort": "b",
     "colorStatsEmpty": "The most-used colors will appear here after a chart is generated.",

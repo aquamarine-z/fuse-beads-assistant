@@ -119,6 +119,7 @@
     "sourceEmpty": "まだ画像がありません。左側から画像を選択してください。",
     "colorStatsTitle": "色数集計",
     "colorStatsDesc": "この図案で多く使われている色とコードを確認できます。",
+    "usedColorTotal": "全 {count} 色",
     "colorCountUnit": "{count} 粒",
     "beadUnitShort": "粒",
     "colorStatsEmpty": "図案生成後、使用頻度の高い色がここに表示されます。",
