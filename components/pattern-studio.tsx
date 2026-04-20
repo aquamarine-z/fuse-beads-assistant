@@ -570,8 +570,8 @@ export function PatternStudio() {
   function updateImageAreaDimension(axis: "width" | "height", value: number) {
     const boardLimit = axis === "width" ? targetWidth : targetHeight;
     const safeValue = Number.isFinite(value)
-      ? Math.min(boardLimit, Math.max(1, value))
-      : 1;
+      ? Math.min(boardLimit, Math.max(0, value))
+      : 0;
     setLastEditedImageAxis(axis);
 
     if (axis === "width") {
@@ -587,9 +587,9 @@ export function PatternStudio() {
     const ratio = sourceImage.naturalWidth / sourceImage.naturalHeight;
 
     if (axis === "width") {
-      setImageAreaHeight(Math.max(1, Math.min(targetHeight, Math.round(safeValue / ratio))));
+      setImageAreaHeight(Math.max(0, Math.min(targetHeight, Math.round(safeValue / ratio))));
     } else {
-      setImageAreaWidth(Math.max(1, Math.min(targetWidth, Math.round(safeValue * ratio))));
+      setImageAreaWidth(Math.max(0, Math.min(targetWidth, Math.round(safeValue * ratio))));
     }
   }
 
@@ -643,9 +643,9 @@ export function PatternStudio() {
     const ratio = sourceImage.naturalWidth / sourceImage.naturalHeight;
 
     if (lastEditedImageAxis === "width") {
-      setImageAreaHeight(Math.max(1, Math.min(targetHeight, Math.round(imageAreaWidth / ratio))));
+      setImageAreaHeight(Math.max(0, Math.min(targetHeight, Math.round(imageAreaWidth / ratio))));
     } else {
-      setImageAreaWidth(Math.max(1, Math.min(targetWidth, Math.round(imageAreaHeight * ratio))));
+      setImageAreaWidth(Math.max(0, Math.min(targetWidth, Math.round(imageAreaHeight * ratio))));
     }
   }
 
@@ -954,22 +954,26 @@ export function PatternStudio() {
                 <Field orientation="responsive">
                   <FieldLabel htmlFor="image-area-width">{t("imageAreaWidth")}</FieldLabel>
                   <FieldContent>
-                    <Input
-                      id="image-area-width"
-                      type="number"
-                      min={1}
-                      max={targetWidth}
-                      value={imageAreaWidth}
-                      onChange={(event) => {
-                        const nextValue = parsePositiveIntegerInput(event.target.value);
-
-                        if (nextValue === null) {
-                          return;
+                    <div className="grid gap-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm text-muted-foreground">0</span>
+                        <Badge variant="secondary" className="rounded-full px-3 py-1">
+                          {imageAreaWidth} / {targetWidth}
+                        </Badge>
+                      </div>
+                      <Slider
+                        value={[imageAreaWidth]}
+                        min={0}
+                        max={targetWidth}
+                        step={1}
+                        onValueChange={(value) =>
+                          updateImageAreaDimension(
+                            "width",
+                            typeof value === "number" ? value : (value[0] ?? 0)
+                          )
                         }
-
-                        updateImageAreaDimension("width", nextValue);
-                      }}
-                    />
+                      />
+                    </div>
                     <FieldDescription>{t("imageAreaWidthHint")}</FieldDescription>
                   </FieldContent>
                 </Field>
@@ -977,23 +981,27 @@ export function PatternStudio() {
                 <Field orientation="responsive">
                   <FieldLabel htmlFor="image-area-height">{t("imageAreaHeight")}</FieldLabel>
                   <FieldContent>
-                    <Input
-                      id="image-area-height"
-                      type="number"
-                      min={1}
-                      max={targetHeight}
-                      value={imageAreaHeight}
-                      disabled={lockImageAspectRatio}
-                      onChange={(event) => {
-                        const nextValue = parsePositiveIntegerInput(event.target.value);
-
-                        if (nextValue === null) {
-                          return;
+                    <div className="grid gap-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm text-muted-foreground">0</span>
+                        <Badge variant="secondary" className="rounded-full px-3 py-1">
+                          {imageAreaHeight} / {targetHeight}
+                        </Badge>
+                      </div>
+                      <Slider
+                        value={[imageAreaHeight]}
+                        min={0}
+                        max={targetHeight}
+                        step={1}
+                        disabled={lockImageAspectRatio}
+                        onValueChange={(value) =>
+                          updateImageAreaDimension(
+                            "height",
+                            typeof value === "number" ? value : (value[0] ?? 0)
+                          )
                         }
-
-                        updateImageAreaDimension("height", nextValue);
-                      }}
-                    />
+                      />
+                    </div>
                     <FieldDescription>
                       {lockImageAspectRatio ? t("imageAreaHeightLockedHint") : t("imageAreaHeightHint")}
                     </FieldDescription>
@@ -1147,22 +1155,22 @@ export function PatternStudio() {
               </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col gap-4">
-                  <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-2xl sm:grid-cols-4">
-                    <TabsTrigger value="preview" className="h-auto px-2 py-2 text-xs leading-tight whitespace-normal sm:text-sm">
+                  <TabsList className="grid !h-auto w-full auto-rows-fr grid-cols-2 !items-stretch gap-1 rounded-2xl border border-border/70 bg-secondary/90 p-[3px] shadow-inner sm:grid-cols-4 dark:bg-white/10">
+                    <TabsTrigger value="preview" className="!h-auto min-h-[2.625rem] w-full self-auto rounded-xl px-2 py-[0.4375rem] text-xs leading-snug whitespace-normal break-words data-active:bg-background sm:min-h-[2.375rem] sm:text-sm">
                       {t("tabPreview")}
                     </TabsTrigger>
-                    <TabsTrigger value="plan" className="h-auto px-2 py-2 text-xs leading-tight whitespace-normal sm:text-sm">
+                    <TabsTrigger value="plan" className="!h-auto min-h-[2.625rem] w-full self-auto rounded-xl px-2 py-[0.4375rem] text-xs leading-snug whitespace-normal break-words data-active:bg-background sm:min-h-[2.375rem] sm:text-sm">
                       {t("tabPlan")}
                     </TabsTrigger>
-                    <TabsTrigger value="plan-colors" className="h-auto px-2 py-2 text-xs leading-tight whitespace-normal sm:text-sm">
+                    <TabsTrigger value="plan-colors" className="!h-auto min-h-[2.625rem] w-full self-auto rounded-xl px-2 py-[0.4375rem] text-xs leading-snug whitespace-normal break-words data-active:bg-background sm:min-h-[2.375rem] sm:text-sm">
                       {t("tabPlanColors")}
                     </TabsTrigger>
-                    <TabsTrigger value="source" className="h-auto px-2 py-2 text-xs leading-tight whitespace-normal sm:text-sm">
+                    <TabsTrigger value="source" className="!h-auto min-h-[2.625rem] w-full self-auto rounded-xl px-2 py-[0.4375rem] text-xs leading-snug whitespace-normal break-words data-active:bg-background sm:min-h-[2.375rem] sm:text-sm">
                       {t("tabSource")}
                     </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="preview">
+                  <TabsContent value="preview" className="mt-0 min-h-0">
                     <CanvasPanel
                       canvasRef={previewCanvasRef}
                       hasContent={Boolean(deferredPattern)}
@@ -1171,7 +1179,7 @@ export function PatternStudio() {
                     />
                   </TabsContent>
 
-                  <TabsContent value="plan">
+                  <TabsContent value="plan" className="mt-0 min-h-0">
                     <CanvasPanel
                       canvasRef={planCanvasRef}
                       hasContent={Boolean(deferredPattern)}
@@ -1180,7 +1188,7 @@ export function PatternStudio() {
                     />
                   </TabsContent>
 
-                  <TabsContent value="plan-colors">
+                  <TabsContent value="plan-colors" className="mt-0 min-h-0">
                     <div className="grid gap-4">
                       <CanvasPanel
                         canvasRef={planWithColorsCanvasRef}
@@ -1217,7 +1225,7 @@ export function PatternStudio() {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="source">
+                  <TabsContent value="source" className="mt-0 min-h-0">
                     <CanvasPanelShell>
                       {imageUrl ? (
                         <div className="flex w-full max-w-4xl flex-col items-center gap-4">
@@ -1352,8 +1360,8 @@ function CanvasPanel({
   pending: boolean;
 }) {
   return (
-    <div className="overflow-auto rounded-[1.75rem] border border-border/70 bg-background/80 p-4">
-      <div className="mx-auto flex min-h-[18rem] min-w-full w-max items-center justify-center sm:min-h-[24rem]">
+    <div className="max-h-[22rem] overflow-auto rounded-[1.75rem] border border-border/70 bg-background/80 p-4 sm:max-h-[26rem] lg:max-h-[30rem]">
+      <div className="mx-auto flex min-h-[14rem] min-w-full w-max items-center justify-center sm:min-h-[16rem] lg:min-h-[18rem]">
       {hasContent ? (
         <canvas
           ref={canvasRef}
@@ -1369,8 +1377,8 @@ function CanvasPanel({
 
 function CanvasPanelShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="overflow-auto rounded-[1.75rem] border border-border/70 bg-background/80 p-4">
-      <div className="mx-auto flex min-h-[18rem] min-w-full w-max items-center justify-center sm:min-h-[24rem]">
+    <div className="max-h-[22rem] overflow-auto rounded-[1.75rem] border border-border/70 bg-background/80 p-4 sm:max-h-[26rem] lg:max-h-[30rem]">
+      <div className="mx-auto flex min-h-[14rem] min-w-full w-max items-center justify-center sm:min-h-[16rem] lg:min-h-[18rem]">
         {children}
       </div>
     </div>

@@ -445,7 +445,10 @@ export function generatePatternFromImage(
   let drawWidth = imageWidth;
   let drawHeight = imageHeight;
 
-  if (fitMode === "contain") {
+  if (imageWidth <= 0 || imageHeight <= 0) {
+    drawWidth = 0;
+    drawHeight = 0;
+  } else if (fitMode === "contain") {
     const scale = Math.min(scaleX, scaleY);
     drawWidth = sourceWidth * scale;
     drawHeight = sourceHeight * scale;
@@ -460,7 +463,9 @@ export function generatePatternFromImage(
   const drawX = Math.round(imageAreaX + (imageWidth - roundedDrawWidth) / 2);
   const drawY = Math.round(imageAreaY + (imageHeight - roundedDrawHeight) / 2);
 
-  context.drawImage(image, drawX, drawY, roundedDrawWidth, roundedDrawHeight);
+  if (roundedDrawWidth > 0 && roundedDrawHeight > 0) {
+    context.drawImage(image, drawX, drawY, roundedDrawWidth, roundedDrawHeight);
+  }
 
   const pixels = context.getImageData(0, 0, boardWidth, boardHeight).data;
   const cells: PatternCell[] = [];
