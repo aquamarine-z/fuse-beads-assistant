@@ -1,4 +1,5 @@
 export type FitMode = "contain" | "cover" | "stretch";
+export type SamplingMode = "smooth" | "precise";
 
 type RgbColor = {
   r: number;
@@ -420,6 +421,7 @@ export function generatePatternFromImage(
   imageWidth: number,
   imageHeight: number,
   fitMode: FitMode,
+  samplingMode: SamplingMode = "precise",
   colorMergeTolerance = 0,
   backgroundTag = "H2"
 ): PatternResult {
@@ -463,8 +465,30 @@ export function generatePatternFromImage(
   const roundedDrawHeight = Math.round(drawHeight);
   const drawX = Math.round(imageAreaX + (imageWidth - roundedDrawWidth) / 2);
   const drawY = Math.round(imageAreaY + (imageHeight - roundedDrawHeight) / 2);
+  const backgroundColor = findPaletteBackground(palette, backgroundTag);
+
+  if (samplingMode === "precise") {
+    const precisePattern = generatePatternWithPreciseSampling(image, palette, {
+      boardWidth,
+      boardHeight,
+      imageWidth,
+      imageHeight,
+      imageAreaX,
+      imageAreaY,
+      drawX,
+      drawY,
+      drawWidth: roundedDrawWidth,
+      drawHeight: roundedDrawHeight,
+      backgroundColor,
+    });
+
+    return colorMergeTolerance > 0
+      ? mergePatternColors(precisePattern, colorMergeTolerance, backgroundTag)
+      : precisePattern;
+  }
 
   if (roundedDrawWidth > 0 && roundedDrawHeight > 0) {
+    context.imageSmoothingQuality = "high";
     context.drawImage(image, drawX, drawY, roundedDrawWidth, roundedDrawHeight);
   }
 
@@ -508,16 +532,273 @@ export function generatePatternFromImage(
     }
   }
 
-  const initialPattern: PatternResult = {
-    width: boardWidth,
-    height: boardHeight,
-    cells,
-    counts: Array.from(counts.values()).sort((left, right) => right.count - left.count),
-  };
+  const initialPattern = buildPatternResult(boardWidth, boardHeight, cells);
 
   return colorMergeTolerance > 0
     ? mergePatternColors(initialPattern, colorMergeTolerance, backgroundTag)
     : initialPattern;
+}
+
+function generatePatternWithPreciseSampling(
+  image: HTMLImageElement,
+  palette: PaletteColor[],
+  options: {
+    boardWidth: number;
+    boardHeight: number;
+    imageWidth: number;
+    imageHeight: number;
+    imageAreaX: number;
+    imageAreaY: number;
+    drawX: number;
+    drawY: number;
+    drawWidth: number;
+    drawHeight: number;
+    backgroundColor: PaletteColor;
+  }
+) {
+  const {
+    boardWidth,
+    boardHeight,
+    imageWidth,
+    imageHeight,
+    imageAreaX,
+    imageAreaY,
+    drawX,
+    drawY,
+    drawWidth,
+    drawHeight,
+    backgroundColor,
+  } = options;
+  const sourceWidth = image.naturalWidth || image.width;
+  const sourceHeight = image.naturalHeight || image.height;
+  const sourceCanvas = document.createElement("canvas");
+  sourceCanvas.width = sourceWidth;
+  sourceCanvas.height = sourceHeight;
+  const sourceContext = sourceCanvas.getContext("2d", { willReadFrequently: true });
+
+  if (!sourceContext) {
+    throw new Error("Canvas is unavailable in this browser.");
+  }
+
+  sourceContext.drawImage(image, 0, 0, sourceWidth, sourceHeight);
+  const sourcePixels = sourceContext.getImageData(0, 0, sourceWidth, sourceHeight).data;
+  const nearestCache = new Map<number, PaletteColor>();
+  const cells: PatternCell[] = [];
+
+  for (let y = 0; y < boardHeight; y += 1) {
+    for (let x = 0; x < boardWidth; x += 1) {
+      const sampleRgb = sampleBoardCellColor(
+        sourcePixels,
+        sourceWidth,
+        sourceHeight,
+        x,
+        y,
+        {
+          imageAreaX,
+          imageAreaY,
+          imageWidth,
+          imageHeight,
+          drawX,
+          drawY,
+          drawWidth,
+          drawHeight,
+        },
+        backgroundColor.rgb
+      );
+      const packed = (sampleRgb.r << 16) | (sampleRgb.g << 8) | sampleRgb.b;
+      const nearest =
+        nearestCache.get(packed) ??
+        findNearestPaletteColor(sampleRgb, palette, nearestCache, packed);
+
+      cells.push({
+        ...nearest,
+        x,
+        y,
+      });
+    }
+  }
+
+  return buildPatternResult(boardWidth, boardHeight, cells);
+}
+
+function sampleBoardCellColor(
+  sourcePixels: Uint8ClampedArray,
+  sourceWidth: number,
+  sourceHeight: number,
+  cellX: number,
+  cellY: number,
+  drawArea: {
+    imageAreaX: number;
+    imageAreaY: number;
+    imageWidth: number;
+    imageHeight: number;
+    drawX: number;
+    drawY: number;
+    drawWidth: number;
+    drawHeight: number;
+  },
+  backgroundRgb: RgbColor
+) {
+  const {
+    imageAreaX,
+    imageAreaY,
+    imageWidth,
+    imageHeight,
+    drawX,
+    drawY,
+    drawWidth,
+    drawHeight,
+  } = drawArea;
+
+  if (
+    imageWidth <= 0 ||
+    imageHeight <= 0 ||
+    cellX < imageAreaX ||
+    cellX >= imageAreaX + imageWidth ||
+    cellY < imageAreaY ||
+    cellY >= imageAreaY + imageHeight ||
+    drawWidth <= 0 ||
+    drawHeight <= 0
+  ) {
+    return backgroundRgb;
+  }
+
+  const sampleOffsets = [0.125, 0.375, 0.625, 0.875];
+  let sumR = 0;
+  let sumG = 0;
+  let sumB = 0;
+  let totalSamples = 0;
+
+  for (const offsetY of sampleOffsets) {
+    for (const offsetX of sampleOffsets) {
+      const boardSampleX = cellX + offsetX;
+      const boardSampleY = cellY + offsetY;
+
+      if (
+        boardSampleX < imageAreaX ||
+        boardSampleX > imageAreaX + imageWidth ||
+        boardSampleY < imageAreaY ||
+        boardSampleY > imageAreaY + imageHeight
+      ) {
+        sumR += backgroundRgb.r;
+        sumG += backgroundRgb.g;
+        sumB += backgroundRgb.b;
+        totalSamples += 1;
+        continue;
+      }
+
+      const normalizedX = (boardSampleX - drawX) / drawWidth;
+      const normalizedY = (boardSampleY - drawY) / drawHeight;
+
+      if (
+        normalizedX < 0 ||
+        normalizedX > 1 ||
+        normalizedY < 0 ||
+        normalizedY > 1
+      ) {
+        sumR += backgroundRgb.r;
+        sumG += backgroundRgb.g;
+        sumB += backgroundRgb.b;
+        totalSamples += 1;
+        continue;
+      }
+
+      const sampled = sampleImageBilinear(
+        sourcePixels,
+        sourceWidth,
+        sourceHeight,
+        normalizedX * (sourceWidth - 1),
+        normalizedY * (sourceHeight - 1),
+        backgroundRgb
+      );
+
+      sumR += sampled.r;
+      sumG += sampled.g;
+      sumB += sampled.b;
+      totalSamples += 1;
+    }
+  }
+
+  return {
+    r: Math.round(sumR / totalSamples),
+    g: Math.round(sumG / totalSamples),
+    b: Math.round(sumB / totalSamples),
+  };
+}
+
+function sampleImageBilinear(
+  sourcePixels: Uint8ClampedArray,
+  sourceWidth: number,
+  sourceHeight: number,
+  x: number,
+  y: number,
+  backgroundRgb: RgbColor
+) {
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
+  const x1 = Math.min(sourceWidth - 1, x0 + 1);
+  const y1 = Math.min(sourceHeight - 1, y0 + 1);
+  const tx = x - x0;
+  const ty = y - y0;
+
+  const topLeft = readSourcePixel(sourcePixels, sourceWidth, x0, y0, backgroundRgb);
+  const topRight = readSourcePixel(sourcePixels, sourceWidth, x1, y0, backgroundRgb);
+  const bottomLeft = readSourcePixel(sourcePixels, sourceWidth, x0, y1, backgroundRgb);
+  const bottomRight = readSourcePixel(sourcePixels, sourceWidth, x1, y1, backgroundRgb);
+
+  return {
+    r: Math.round(
+      lerp(lerp(topLeft.r, topRight.r, tx), lerp(bottomLeft.r, bottomRight.r, tx), ty)
+    ),
+    g: Math.round(
+      lerp(lerp(topLeft.g, topRight.g, tx), lerp(bottomLeft.g, bottomRight.g, tx), ty)
+    ),
+    b: Math.round(
+      lerp(lerp(topLeft.b, topRight.b, tx), lerp(bottomLeft.b, bottomRight.b, tx), ty)
+    ),
+  };
+}
+
+function readSourcePixel(
+  sourcePixels: Uint8ClampedArray,
+  sourceWidth: number,
+  x: number,
+  y: number,
+  backgroundRgb: RgbColor
+) {
+  const index = (y * sourceWidth + x) * 4;
+  const alpha = sourcePixels[index + 3] / 255;
+
+  if (alpha <= 0) {
+    return backgroundRgb;
+  }
+
+  return {
+    r: Math.round(sourcePixels[index] * alpha + backgroundRgb.r * (1 - alpha)),
+    g: Math.round(sourcePixels[index + 1] * alpha + backgroundRgb.g * (1 - alpha)),
+    b: Math.round(sourcePixels[index + 2] * alpha + backgroundRgb.b * (1 - alpha)),
+  };
+}
+
+function buildPatternResult(width: number, height: number, cells: PatternCell[]): PatternResult {
+  const counts = new Map<string, { color: PaletteColor; count: number }>();
+
+  for (const cell of cells) {
+    const existing = counts.get(cell.tag);
+
+    if (existing) {
+      existing.count += 1;
+    } else {
+      counts.set(cell.tag, { color: cell, count: 1 });
+    }
+  }
+
+  return {
+    width,
+    height,
+    cells,
+    counts: Array.from(counts.values()).sort((left, right) => right.count - left.count),
+  };
 }
 
 function findNearestPaletteColor(
@@ -744,6 +1025,10 @@ function degreesToRadians(value: number) {
 
 function radiansToDegrees(value: number) {
   return (value * 180) / Math.PI;
+}
+
+function lerp(start: number, end: number, amount: number) {
+  return start + (end - start) * amount;
 }
 
 function hexToRgb(hex: string): RgbColor {

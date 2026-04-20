@@ -106,6 +106,7 @@ export function PatternExportViewer() {
           typeof parsed.imageAreaWidth === "number" &&
           typeof parsed.imageAreaHeight === "number" &&
           typeof parsed.fitMode === "string" &&
+          typeof parsed.samplingMode === "string" &&
           typeof parsed.colorMergeTolerance === "number" &&
           typeof parsed.preferSquare === "boolean" &&
           typeof parsed.lockAspectRatio === "boolean" &&
@@ -213,6 +214,7 @@ export function PatternExportViewer() {
       imageAreaWidth: persistedState.imageAreaWidth,
       imageAreaHeight: persistedState.imageAreaHeight,
       fitMode: persistedState.fitMode,
+      samplingMode: persistedState.samplingMode,
       colorMergeTolerance: persistedState.colorMergeTolerance,
       preferSquare: persistedState.preferSquare,
       lockAspectRatio: persistedState.lockAspectRatio,
@@ -308,6 +310,7 @@ export function PatternExportViewer() {
         persistedState.imageAreaWidth,
         persistedState.imageAreaHeight,
         persistedState.fitMode,
+        persistedState.samplingMode,
         persistedState.colorMergeTolerance,
         "H2"
       );

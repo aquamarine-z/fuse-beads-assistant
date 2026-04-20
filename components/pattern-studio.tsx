@@ -56,6 +56,7 @@ import {
   type FitMode,
   type PaletteColor,
   type PatternResult,
+  type SamplingMode,
   generatePatternFromImage,
   parsePaletteCsv,
   renderPatternToCanvas,
@@ -80,6 +81,11 @@ const FIT_MODES: Array<{ value: FitMode; key: "Contain" | "Cover" | "Stretch" }>
   { value: "stretch", key: "Stretch" },
 ];
 
+const SAMPLING_MODES: Array<{ value: SamplingMode; key: "Smooth" | "Precise" }> = [
+  { value: "precise", key: "Precise" },
+  { value: "smooth", key: "Smooth" },
+];
+
 const BOARD_PRESETS = [
   { value: "52x52", width: 52, height: 52 },
   { value: "104x104", width: 104, height: 104 },
@@ -96,6 +102,7 @@ export function PatternStudio() {
   const [imageAreaWidth, setImageAreaWidth] = useState(52);
   const [imageAreaHeight, setImageAreaHeight] = useState(52);
   const [fitMode, setFitMode] = useState<FitMode>("contain");
+  const [samplingMode, setSamplingMode] = useState<SamplingMode>("precise");
   const [colorMergeTolerance, setColorMergeTolerance] = useState(0);
   const [preferSquare, setPreferSquare] = useState(true);
   const [lockAspectRatio, setLockAspectRatio] = useState(true);
@@ -132,9 +139,10 @@ export function PatternStudio() {
         imageAreaWidth,
         imageAreaHeight,
         fitMode,
+        samplingMode,
         colorMergeTolerance,
       ].join("|"),
-    [colorMergeTolerance, fitMode, imageAreaHeight, imageAreaWidth, imageUrl, targetHeight, targetWidth]
+    [colorMergeTolerance, fitMode, imageAreaHeight, imageAreaWidth, imageUrl, samplingMode, targetHeight, targetWidth]
   );
   const isPatternReadyForExport =
     Boolean(imageUrl) &&
@@ -214,6 +222,7 @@ export function PatternStudio() {
         if (parsed.imageAreaWidth) setImageAreaWidth(parsed.imageAreaWidth);
         if (parsed.imageAreaHeight) setImageAreaHeight(parsed.imageAreaHeight);
         if (parsed.fitMode) setFitMode(parsed.fitMode);
+        if (parsed.samplingMode) setSamplingMode(parsed.samplingMode);
         if (typeof parsed.colorMergeTolerance === "number") {
           setColorMergeTolerance(parsed.colorMergeTolerance);
         }
@@ -272,6 +281,7 @@ export function PatternStudio() {
       imageAreaWidth,
       imageAreaHeight,
       fitMode,
+      samplingMode,
       colorMergeTolerance,
       preferSquare,
       lockAspectRatio,
@@ -309,6 +319,7 @@ export function PatternStudio() {
     pattern,
     patternKey,
     preferSquare,
+    samplingMode,
     showCodes,
     sourceSummary,
     targetHeight,
@@ -369,6 +380,7 @@ export function PatternStudio() {
             imageAreaWidth,
             imageAreaHeight,
             fitMode,
+            samplingMode,
             colorMergeTolerance,
             "H2"
           );
@@ -386,7 +398,7 @@ export function PatternStudio() {
     return () => {
       window.clearTimeout(handle);
     };
-  }, [colorMergeTolerance, currentPatternKey, fitMode, imageAreaHeight, imageAreaWidth, palette, sourceImage, targetHeight, targetWidth, t]);
+  }, [colorMergeTolerance, currentPatternKey, fitMode, imageAreaHeight, imageAreaWidth, palette, samplingMode, sourceImage, targetHeight, targetWidth, t]);
 
   const drawCanvas = useEffectEvent(() => {
     if (!deferredPattern) {
@@ -1076,6 +1088,34 @@ export function PatternStudio() {
                   </FieldContent>
                 </Field>
 
+                <Field orientation="responsive">
+                  <FieldLabel>{t("samplingModeLabel")}</FieldLabel>
+                  <FieldContent>
+                    <Select
+                      value={samplingMode}
+                      onValueChange={(value) => setSamplingMode(value as SamplingMode)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t("samplingModePlaceholder")}>
+                          {t(
+                            `sampling${SAMPLING_MODES.find((item) => item.value === samplingMode)?.key ?? "Precise"}`
+                          )}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {SAMPLING_MODES.map((item) => (
+                            <SelectItem key={item.value} value={item.value}>
+                              {t(`sampling${item.key}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    <FieldDescription>{t("samplingModeHint")}</FieldDescription>
+                  </FieldContent>
+                </Field>
+
                 <Field orientation="horizontal">
                   <FieldLabel htmlFor="lock-ratio">{t("lockRatio")}</FieldLabel>
                   <Switch
@@ -1370,6 +1410,14 @@ export function PatternStudio() {
                     <p className="text-sm text-muted-foreground">{t("fitModeTitle")}</p>
                     <p className="mt-2 text-base font-medium">
                       {t(`fit${FIT_MODES.find((item) => item.value === fitMode)?.key ?? "Contain"}`)}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.5rem] bg-secondary/80 p-4">
+                    <p className="text-sm text-muted-foreground">{t("samplingModeTitle")}</p>
+                    <p className="mt-2 text-base font-medium">
+                      {t(
+                        `sampling${SAMPLING_MODES.find((item) => item.value === samplingMode)?.key ?? "Precise"}`
+                      )}
                     </p>
                   </div>
                   <div className="rounded-[1.5rem] bg-secondary/80 p-4">
