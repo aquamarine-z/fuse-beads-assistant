@@ -1,0 +1,345 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { ArrowDownToLine, ArrowLeft, Palette } from "lucide-react";
+import { useTranslations } from "next-intl";
+
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { TitlebarControls } from "@/components/titlebar-controls";
+import { Link } from "@/i18n/navigation";
+import {
+  type PatternResult,
+  renderPatternExportToCanvas,
+} from "@/lib/bead-pattern";
+import {
+  PATTERN_EXPORT_CHANNEL,
+  PATTERN_EXPORT_PAYLOAD_KEY,
+  PATTERN_STUDIO_STORAGE_KEY,
+} from "@/lib/pattern-studio-state";
+
+type PersistedState = {
+  exportKey?: string;
+  imageUrl?: string;
+  imageTitle?: string;
+  sourceSummary?: string;
+  fitMode?: "contain" | "cover" | "stretch";
+  preferSquare?: boolean;
+  lockAspectRatio?: boolean;
+  lockImageAspectRatio?: boolean;
+  showCodes?: boolean;
+  cellSize?: number;
+  activeTab?: string;
+  targetWidth?: number;
+  targetHeight?: number;
+  imageAreaWidth?: number;
+  imageAreaHeight?: number;
+  patternWidth?: number;
+  patternHeight?: number;
+  pattern?: PatternResult | null;
+};
+
+export function PatternExportViewer() {
+  const t = useTranslations("PatternExport");
+  const [pattern, setPattern] = useState<PatternResult | null>(null);
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageTitle, setImageTitle] = useState("");
+  const [sourceSummary, setSourceSummary] = useState("");
+  const [targetWidth, setTargetWidth] = useState(52);
+  const [targetHeight, setTargetHeight] = useState(52);
+  const [imageAreaWidth, setImageAreaWidth] = useState(52);
+  const [imageAreaHeight, setImageAreaHeight] = useState(52);
+  const [showCodes, setShowCodes] = useState(true);
+  const [persistedState, setPersistedState] = useState<PersistedState | null>(null);
+  const [error, setError] = useState("");
+  const [isPending, setIsPending] = useState(true);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const exportCellSize = (() => {
+    if (!pattern) {
+      return 24;
+    }
+
+    const longestSide = Math.max(pattern.width, pattern.height);
+    const maxTagLength = pattern.cells.reduce(
+      (max, cell) => Math.max(max, cell.tag.length),
+      0
+    );
+    const bump = maxTagLength >= 3 ? 2 : 0;
+
+    if (longestSide <= 52) return 28 + bump;
+    if (longestSide <= 80) return 24 + bump;
+    if (longestSide <= 120) return 20 + bump;
+    return 16 + bump;
+  })();
+
+  useEffect(() => {
+    const saved = window.sessionStorage.getItem(PATTERN_EXPORT_PAYLOAD_KEY);
+    let fallbackState: PersistedState | null = null;
+    const allowFallbackState = !window.opener;
+    const sourceStudioId = new URLSearchParams(window.location.search).get("source");
+
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as PersistedState;
+
+        if (
+          allowFallbackState &&
+          parsed.imageUrl &&
+          parsed.pattern &&
+          typeof parsed.targetWidth === "number" &&
+          typeof parsed.targetHeight === "number"
+        ) {
+          fallbackState = parsed;
+        }
+      } catch {
+        window.sessionStorage.removeItem(PATTERN_EXPORT_PAYLOAD_KEY);
+      }
+    }
+
+    const channel = new BroadcastChannel(PATTERN_EXPORT_CHANNEL);
+    let resolved = false;
+    let attempt = 0;
+
+    channel.onmessage = (event) => {
+      if (
+        event.data?.type === "provide-state" &&
+        event.data.payload?.imageUrl &&
+        event.data.payload?.pattern
+      ) {
+        resolved = true;
+        window.sessionStorage.setItem(
+          PATTERN_EXPORT_PAYLOAD_KEY,
+          JSON.stringify(event.data.payload)
+        );
+        window.sessionStorage.setItem(
+          PATTERN_STUDIO_STORAGE_KEY,
+          JSON.stringify({
+            targetWidth: event.data.payload.targetWidth,
+            targetHeight: event.data.payload.targetHeight,
+            imageAreaWidth: event.data.payload.imageAreaWidth,
+            imageAreaHeight: event.data.payload.imageAreaHeight,
+            fitMode: event.data.payload.fitMode,
+            preferSquare: event.data.payload.preferSquare,
+            lockAspectRatio: event.data.payload.lockAspectRatio,
+            lockImageAspectRatio: event.data.payload.lockImageAspectRatio,
+            showCodes: event.data.payload.showCodes,
+            cellSize: event.data.payload.cellSize,
+            activeTab: event.data.payload.activeTab ?? "plan",
+            imageUrl: event.data.payload.imageUrl,
+            imageTitle: event.data.payload.imageTitle,
+            sourceSummary: event.data.payload.sourceSummary,
+          })
+        );
+        setPersistedState(event.data.payload as PersistedState);
+        channel.close();
+      }
+
+      if (event.data?.type === "state-unavailable") {
+        resolved = true;
+        setError(t("missingData"));
+        setIsPending(false);
+        channel.close();
+      }
+    };
+
+    const request = () => {
+      if (resolved) {
+        return;
+      }
+
+      attempt += 1;
+      channel.postMessage({
+        type: "request-state",
+        sourceStudioId,
+      });
+
+      if (attempt >= 8) {
+        resolved = true;
+        if (fallbackState) {
+          setPersistedState(fallbackState);
+          setError("");
+          setIsPending(false);
+        } else {
+          setError(t("missingData"));
+          setIsPending(false);
+        }
+        channel.close();
+        return;
+      }
+
+      window.setTimeout(request, 180);
+    };
+
+    request();
+
+    return () => {
+      channel.close();
+    };
+  }, [t]);
+
+  useEffect(() => {
+    if (!persistedState) {
+      return;
+    }
+
+    if (
+      !persistedState.imageUrl ||
+      !persistedState.pattern ||
+      typeof persistedState.targetWidth !== "number" ||
+      typeof persistedState.targetHeight !== "number" ||
+      typeof persistedState.imageAreaWidth !== "number" ||
+      typeof persistedState.imageAreaHeight !== "number"
+    ) {
+      setError(t("missingData"));
+      setIsPending(false);
+      return;
+    }
+
+    setImageUrl(persistedState.imageUrl);
+    setImageTitle(persistedState.imageTitle ?? "");
+    setSourceSummary(persistedState.sourceSummary ?? "");
+    setTargetWidth(persistedState.targetWidth);
+    setTargetHeight(persistedState.targetHeight);
+    setImageAreaWidth(persistedState.imageAreaWidth);
+    setImageAreaHeight(persistedState.imageAreaHeight);
+    setShowCodes(persistedState.showCodes ?? true);
+    setPattern(persistedState.pattern);
+    window.sessionStorage.setItem(
+      PATTERN_STUDIO_STORAGE_KEY,
+      JSON.stringify({
+        targetWidth: persistedState.targetWidth,
+        targetHeight: persistedState.targetHeight,
+        imageAreaWidth: persistedState.imageAreaWidth,
+        imageAreaHeight: persistedState.imageAreaHeight,
+        fitMode: persistedState.fitMode,
+        preferSquare: persistedState.preferSquare,
+        lockAspectRatio: persistedState.lockAspectRatio,
+        lockImageAspectRatio: persistedState.lockImageAspectRatio,
+        showCodes: persistedState.showCodes,
+        cellSize: persistedState.cellSize,
+        activeTab: persistedState.activeTab ?? "plan",
+        imageUrl: persistedState.imageUrl,
+        imageTitle: persistedState.imageTitle,
+        sourceSummary: persistedState.sourceSummary,
+      })
+    );
+    setError("");
+    setIsPending(false);
+  }, [persistedState, t]);
+
+  useEffect(() => {
+    if (!pattern || !canvasRef.current) {
+      return;
+    }
+
+    renderPatternExportToCanvas(canvasRef.current, pattern, {
+      cellSize: exportCellSize,
+      showCodes,
+      legendTitle: t("legendTitle"),
+      beadUnit: t("beadUnit"),
+      title: imageTitle,
+      boardSizeLabel: t("boardSizeLabel"),
+      imageAreaSizeLabel: t("imageAreaSizeLabel"),
+      boardWidth: targetWidth,
+      boardHeight: targetHeight,
+      imageAreaWidth,
+      imageAreaHeight,
+    });
+  }, [exportCellSize, imageAreaHeight, imageAreaWidth, imageTitle, pattern, showCodes, t, targetHeight, targetWidth]);
+
+  function handleDownload() {
+    if (!canvasRef.current) {
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.href = canvasRef.current.toDataURL("image/png");
+    link.download = `${sanitizeFileNameSegment(imageTitle || t("untitledImage"))}-${sanitizeFileNameSegment(t("fileNameLargeExport"))}.png`;
+    link.click();
+  }
+
+  return (
+    <main className="relative min-h-screen overflow-hidden">
+      <section className="mx-auto flex w-full max-w-[min(100%,1800px)] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <div className="flex items-center justify-between gap-4">
+          <Link
+            href="/pattern"
+            className={buttonVariants({ variant: "outline", className: "rounded-2xl" })}
+          >
+            <ArrowLeft data-icon="inline-start" />
+            {t("back")}
+          </Link>
+          <TitlebarControls />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[2rem] border border-white/60 bg-white/70 p-5 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">{t("eyebrow")}</p>
+            <h1 className="font-heading text-3xl font-semibold tracking-tight md:text-5xl">
+              {t("title")}
+            </h1>
+            <p className="max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
+              {t("description")}
+            </p>
+            {(imageTitle || sourceSummary) ? (
+              <div className="space-y-1">
+                <p className="text-base font-medium">{imageTitle || t("untitledImage")}</p>
+                {sourceSummary ? (
+                  <p className="text-sm text-muted-foreground">{sourceSummary}</p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-sm">
+              <Switch checked={showCodes} onCheckedChange={setShowCodes} />
+              <span>{t("showCodesToggle")}</span>
+            </label>
+            <Button
+              variant="outline"
+              className="rounded-2xl"
+              disabled={!imageUrl}
+              onClick={() => window.open(imageUrl, "_blank", "noopener,noreferrer")}
+            >
+              {t("openSource")}
+            </Button>
+            <Button className="rounded-2xl" disabled={!pattern} onClick={handleDownload}>
+              <ArrowDownToLine data-icon="inline-start" />
+              {t("download")}
+            </Button>
+          </div>
+        </div>
+
+        <div className="overflow-auto rounded-[2rem] border border-white/60 bg-white/70 p-4 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+          {pattern ? (
+            <canvas
+              ref={canvasRef}
+              className="block max-w-none rounded-[1.5rem] shadow-[0_12px_32px_rgba(15,23,42,0.12)]"
+            />
+          ) : (
+            <div className="flex min-h-[24rem] items-center justify-center rounded-[1.5rem] border border-border/70 bg-background/80 p-4">
+              <div className="mx-auto flex max-w-sm flex-col items-center gap-3 text-center">
+                <div className="flex size-14 items-center justify-center rounded-[1.5rem] bg-secondary text-primary">
+                  <Palette className="size-6" />
+                </div>
+                <p className="text-sm leading-7 text-muted-foreground">
+                  {error || (isPending ? t("loading") : t("missingData"))}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function sanitizeFileNameSegment(value: string) {
+  const sanitized = value
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return sanitized || "export";
+}
