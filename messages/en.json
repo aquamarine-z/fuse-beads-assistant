@@ -31,12 +31,12 @@
     "description": "Image conversion, color counts, and future tooling now live in a cleaner flow. The pattern generator is on its own route and supports Chinese, English, Japanese, and Korean.",
     "primary": "Open Pattern Generator",
     "secondary": "See current capabilities",
-    "cardTitle": "Available now",
-    "cardBody": "Import an image, map it to the Mard 221 palette, and export a preview, coded plan, and color usage summary.",
-    "routeTitle": "Dedicated route",
-    "routeBody": "The generator no longer occupies the homepage, which keeps room open for more tools later.",
-    "langTitle": "Language switching",
-    "langBody": "Simplified Chinese, English, Japanese, and Korean are available, and you can switch on the current page."
+    "cardTitle": "Pattern Conversion",
+    "cardBody": "Import an image, quantize it to the Mard 221 palette, and generate a preview, coded chart, and bead-ready plan.",
+    "routeTitle": "Board And Image Area Control",
+    "routeBody": "Set the board size and image area separately with square-first, centered placement, and stretch-to-fill workflows.",
+    "langTitle": "Large Export And Counts",
+    "langBody": "Open a dedicated large export view, review color bead totals, and switch between Chinese, English, Japanese, and Korean."
   },
   "PatternStudio": {
     "paletteLoadError": "Failed to load the palette file. Please make sure public/Mard221.csv is available.",
