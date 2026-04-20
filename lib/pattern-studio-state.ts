@@ -8,6 +8,7 @@ export type PatternStudioPersistedState = {
   imageAreaWidth: number;
   imageAreaHeight: number;
   fitMode: "contain" | "cover" | "stretch";
+  colorMergeTolerance: number;
   preferSquare: boolean;
   lockAspectRatio: boolean;
   lockImageAspectRatio: boolean;

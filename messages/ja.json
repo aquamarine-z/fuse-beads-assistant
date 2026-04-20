@@ -35,8 +35,8 @@
     "cardBody": "画像を読み込み、Mard 221 パレットに量子化して、プレビュー、コード付き図案、ビーズ向けの図案を生成できます。",
     "routeTitle": "ボードと画像エリア設定",
     "routeBody": "ボードサイズと画像エリアを分けて設定でき、正方形優先、中央配置、引き伸ばしなどの流れに対応します。",
-    "langTitle": "大きな書き出しと色数集計",
-    "langBody": "専用の大きな書き出しページ、色ごとの粒数集計、中国語・英語・日本語・韓国語の切替に対応しています。"
+    "langTitle": "使用色数を減らす",
+    "langBody": "色の統合しきい値で近い色をまとめ、使うビーズ色数を減らして実際に組みやすくできます。"
   },
   "PatternStudio": {
     "paletteLoadError": "パレットファイルの読み込みに失敗しました。public/Mard221.csv を確認してください。",
@@ -92,6 +92,9 @@
     "fitContain": "収める",
     "fitCover": "切り抜いて埋める",
     "fitStretch": "引き伸ばす",
+    "colorMergeToleranceLabel": "色の統合しきい値",
+    "colorMergeToleranceMin": "色を多く残す",
+    "colorMergeToleranceHint": "値を上げるほど近い色を同じビーズ色にまとめ、使用色数を減らします。",
     "lockRatio": "元画像の比率を固定",
     "showCodes": "図案にコードを表示",
     "zoomLabel": "図案の拡大率",

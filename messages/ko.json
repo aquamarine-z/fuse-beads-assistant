@@ -35,8 +35,8 @@
     "cardBody": "이미지를 불러와 Mard 221 팔레트에 맞게 양자화하고, 미리보기, 코드 도안, 비즈 제작용 도안을 생성합니다.",
     "routeTitle": "보드와 이미지 영역 설정",
     "routeBody": "보드 크기와 이미지 영역을 따로 조절할 수 있어 정사각형 우선, 중앙 배치, 늘려 채우기 흐름에 대응합니다.",
-    "langTitle": "대형 내보내기와 색상 통계",
-    "langBody": "전용 대형 내보내기 화면, 색상별 비즈 수 집계, 중국어·영어·일본어·한국어 전환을 함께 지원합니다."
+    "langTitle": "색상 수 줄이기",
+    "langBody": "색상 합치기 허용값으로 가까운 색을 묶어 전체 비즈 색 수를 줄이고 실제 제작을 더 쉽게 할 수 있습니다."
   },
   "PatternStudio": {
     "paletteLoadError": "팔레트 파일을 불러오지 못했습니다. public/Mard221.csv 를 확인해 주세요.",
@@ -92,6 +92,9 @@
     "fitContain": "전체 맞춤",
     "fitCover": "채우기",
     "fitStretch": "늘리기",
+    "colorMergeToleranceLabel": "색상 합치기 허용값",
+    "colorMergeToleranceMin": "색상을 더 많이 유지",
+    "colorMergeToleranceHint": "값이 높을수록 서로 가까운 색을 같은 비즈 색으로 합쳐 전체 색상 수를 줄입니다.",
     "lockRatio": "원본 비율 고정",
     "showCodes": "도안에 코드 표시",
     "zoomLabel": "도안 확대",

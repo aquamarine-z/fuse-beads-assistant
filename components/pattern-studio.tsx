@@ -96,6 +96,7 @@ export function PatternStudio() {
   const [imageAreaWidth, setImageAreaWidth] = useState(52);
   const [imageAreaHeight, setImageAreaHeight] = useState(52);
   const [fitMode, setFitMode] = useState<FitMode>("contain");
+  const [colorMergeTolerance, setColorMergeTolerance] = useState(0);
   const [preferSquare, setPreferSquare] = useState(true);
   const [lockAspectRatio, setLockAspectRatio] = useState(true);
   const [lockImageAspectRatio, setLockImageAspectRatio] = useState(true);
@@ -131,8 +132,9 @@ export function PatternStudio() {
         imageAreaWidth,
         imageAreaHeight,
         fitMode,
+        colorMergeTolerance,
       ].join("|"),
-    [fitMode, imageAreaHeight, imageAreaWidth, imageUrl, targetHeight, targetWidth]
+    [colorMergeTolerance, fitMode, imageAreaHeight, imageAreaWidth, imageUrl, targetHeight, targetWidth]
   );
   const isPatternReadyForExport =
     Boolean(imageUrl) &&
@@ -212,6 +214,9 @@ export function PatternStudio() {
         if (parsed.imageAreaWidth) setImageAreaWidth(parsed.imageAreaWidth);
         if (parsed.imageAreaHeight) setImageAreaHeight(parsed.imageAreaHeight);
         if (parsed.fitMode) setFitMode(parsed.fitMode);
+        if (typeof parsed.colorMergeTolerance === "number") {
+          setColorMergeTolerance(parsed.colorMergeTolerance);
+        }
         if (typeof parsed.preferSquare === "boolean") setPreferSquare(parsed.preferSquare);
         if (typeof parsed.lockAspectRatio === "boolean") setLockAspectRatio(parsed.lockAspectRatio);
         if (typeof parsed.lockImageAspectRatio === "boolean") {
@@ -267,6 +272,7 @@ export function PatternStudio() {
       imageAreaWidth,
       imageAreaHeight,
       fitMode,
+      colorMergeTolerance,
       preferSquare,
       lockAspectRatio,
       lockImageAspectRatio,
@@ -292,6 +298,7 @@ export function PatternStudio() {
   }, [
     activeTab,
     cellSize,
+    colorMergeTolerance,
     fitMode,
     imageAreaHeight,
     imageAreaWidth,
@@ -362,6 +369,7 @@ export function PatternStudio() {
             imageAreaWidth,
             imageAreaHeight,
             fitMode,
+            colorMergeTolerance,
             "H2"
           );
 
@@ -378,7 +386,7 @@ export function PatternStudio() {
     return () => {
       window.clearTimeout(handle);
     };
-  }, [currentPatternKey, fitMode, imageAreaHeight, imageAreaWidth, palette, sourceImage, targetHeight, targetWidth, t]);
+  }, [colorMergeTolerance, currentPatternKey, fitMode, imageAreaHeight, imageAreaWidth, palette, sourceImage, targetHeight, targetWidth, t]);
 
   const drawCanvas = useEffectEvent(() => {
     if (!deferredPattern) {
@@ -872,6 +880,32 @@ export function PatternStudio() {
               </div>
 
               <FieldGroup>
+                <Field orientation="responsive">
+                  <FieldLabel>{t("colorMergeToleranceLabel")}</FieldLabel>
+                  <FieldContent>
+                    <div className="grid gap-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm text-muted-foreground">{t("colorMergeToleranceMin")}</span>
+                        <Badge variant="secondary" className="rounded-full px-3 py-1">
+                          {colorMergeTolerance}
+                        </Badge>
+                      </div>
+                      <Slider
+                        value={[colorMergeTolerance]}
+                        min={0}
+                        max={30}
+                        step={1}
+                        onValueChange={(value) =>
+                          setColorMergeTolerance(
+                            typeof value === "number" ? value : (value[0] ?? 0)
+                          )
+                        }
+                      />
+                    </div>
+                    <FieldDescription>{t("colorMergeToleranceHint")}</FieldDescription>
+                  </FieldContent>
+                </Field>
+
                 <Field>
                   <FieldLabel>{t("boardPresets")}</FieldLabel>
                   <FieldContent>

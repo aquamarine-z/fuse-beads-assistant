@@ -100,12 +100,13 @@ export function PatternExportViewer() {
       try {
         const parsed = JSON.parse(saved) as Partial<PatternStudioPersistedState>;
 
-        if (
+      if (
           typeof parsed.targetWidth === "number" &&
           typeof parsed.targetHeight === "number" &&
           typeof parsed.imageAreaWidth === "number" &&
           typeof parsed.imageAreaHeight === "number" &&
           typeof parsed.fitMode === "string" &&
+          typeof parsed.colorMergeTolerance === "number" &&
           typeof parsed.preferSquare === "boolean" &&
           typeof parsed.lockAspectRatio === "boolean" &&
           typeof parsed.lockImageAspectRatio === "boolean" &&
@@ -212,6 +213,7 @@ export function PatternExportViewer() {
       imageAreaWidth: persistedState.imageAreaWidth,
       imageAreaHeight: persistedState.imageAreaHeight,
       fitMode: persistedState.fitMode,
+      colorMergeTolerance: persistedState.colorMergeTolerance,
       preferSquare: persistedState.preferSquare,
       lockAspectRatio: persistedState.lockAspectRatio,
       lockImageAspectRatio: persistedState.lockImageAspectRatio,
@@ -306,6 +308,7 @@ export function PatternExportViewer() {
         persistedState.imageAreaWidth,
         persistedState.imageAreaHeight,
         persistedState.fitMode,
+        persistedState.colorMergeTolerance,
         "H2"
       );
 

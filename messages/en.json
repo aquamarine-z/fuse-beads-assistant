@@ -35,8 +35,8 @@
     "cardBody": "Import an image, quantize it to the Mard 221 palette, and generate a preview, coded chart, and bead-ready plan.",
     "routeTitle": "Board And Image Area Control",
     "routeBody": "Set the board size and image area separately with square-first, centered placement, and stretch-to-fill workflows.",
-    "langTitle": "Large Export And Counts",
-    "langBody": "Open a dedicated large export view, review color bead totals, and switch between Chinese, English, Japanese, and Korean."
+    "langTitle": "Reduce Color Count",
+    "langBody": "Use color merge tolerance to collapse nearby shades into fewer bead colors, making the final build easier to assemble."
   },
   "PatternStudio": {
     "paletteLoadError": "Failed to load the palette file. Please make sure public/Mard221.csv is available.",
@@ -92,6 +92,9 @@
     "fitContain": "Contain",
     "fitCover": "Cover",
     "fitStretch": "Stretch",
+    "colorMergeToleranceLabel": "Color merge tolerance",
+    "colorMergeToleranceMin": "Keep more colors",
+    "colorMergeToleranceHint": "Higher values merge nearby colors into the same bead color, which reduces the total number of colors.",
     "lockRatio": "Lock source aspect ratio",
     "showCodes": "Show codes on the chart",
     "zoomLabel": "Chart zoom",

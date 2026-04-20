@@ -420,6 +420,7 @@ export function generatePatternFromImage(
   imageWidth: number,
   imageHeight: number,
   fitMode: FitMode,
+  colorMergeTolerance = 0,
   backgroundTag = "H2"
 ): PatternResult {
   const canvas = document.createElement("canvas");
@@ -507,12 +508,16 @@ export function generatePatternFromImage(
     }
   }
 
-  return {
+  const initialPattern: PatternResult = {
     width: boardWidth,
     height: boardHeight,
     cells,
     counts: Array.from(counts.values()).sort((left, right) => right.count - left.count),
   };
+
+  return colorMergeTolerance > 0
+    ? mergePatternColors(initialPattern, colorMergeTolerance, backgroundTag)
+    : initialPattern;
 }
 
 function findNearestPaletteColor(
@@ -542,6 +547,65 @@ function findPaletteBackground(palette: PaletteColor[], tag: string) {
   return palette.find((item) => item.tag === tag) ?? palette[0];
 }
 
+function mergePatternColors(
+  pattern: PatternResult,
+  tolerance: number,
+  backgroundTag: string
+) {
+  const representativeMap = new Map<string, PaletteColor>();
+  const sortedColors = [...pattern.counts].sort((left, right) => right.count - left.count);
+
+  for (const entry of sortedColors) {
+    if (representativeMap.has(entry.color.tag)) {
+      continue;
+    }
+
+    representativeMap.set(entry.color.tag, entry.color);
+
+    if (entry.color.tag === backgroundTag) {
+      continue;
+    }
+
+    for (const candidate of sortedColors) {
+      if (
+        candidate.color.tag === backgroundTag ||
+        representativeMap.has(candidate.color.tag)
+      ) {
+        continue;
+      }
+
+      if (deltaE(entry.color.lab, candidate.color.lab) <= tolerance) {
+        representativeMap.set(candidate.color.tag, entry.color);
+      }
+    }
+  }
+
+  const nextCounts = new Map<string, { color: PaletteColor; count: number }>();
+  const nextCells = pattern.cells.map((cell) => {
+    const mergedColor = representativeMap.get(cell.tag) ?? cell;
+    const existing = nextCounts.get(mergedColor.tag);
+
+    if (existing) {
+      existing.count += 1;
+    } else {
+      nextCounts.set(mergedColor.tag, { color: mergedColor, count: 1 });
+    }
+
+    return {
+      ...mergedColor,
+      x: cell.x,
+      y: cell.y,
+    };
+  });
+
+  return {
+    width: pattern.width,
+    height: pattern.height,
+    cells: nextCells,
+    counts: Array.from(nextCounts.values()).sort((left, right) => right.count - left.count),
+  };
+}
+
 function roundRect(
   context: CanvasRenderingContext2D,
   x: number,
@@ -561,11 +625,125 @@ function roundRect(
 }
 
 function deltaE(left: LabColor, right: LabColor) {
-  return (
-    (left.l - right.l) ** 2 +
-    (left.a - right.a) ** 2 +
-    (left.b - right.b) ** 2
+  const averageLightness = (left.l + right.l) / 2;
+  const chromaLeft = Math.sqrt(left.a ** 2 + left.b ** 2);
+  const chromaRight = Math.sqrt(right.a ** 2 + right.b ** 2);
+  const averageChroma = (chromaLeft + chromaRight) / 2;
+  const averageChromaPower7 = averageChroma ** 7;
+  const compensation =
+    0.5 * (1 - Math.sqrt(averageChromaPower7 / (averageChromaPower7 + 25 ** 7)));
+
+  const adjustedALeft = left.a * (1 + compensation);
+  const adjustedARight = right.a * (1 + compensation);
+  const adjustedChromaLeft = Math.sqrt(adjustedALeft ** 2 + left.b ** 2);
+  const adjustedChromaRight = Math.sqrt(adjustedARight ** 2 + right.b ** 2);
+  const averageAdjustedChroma = (adjustedChromaLeft + adjustedChromaRight) / 2;
+
+  const hueLeft = getHueAngle(adjustedALeft, left.b);
+  const hueRight = getHueAngle(adjustedARight, right.b);
+  const lightnessDelta = right.l - left.l;
+  const chromaDelta = adjustedChromaRight - adjustedChromaLeft;
+
+  const hueDeltaRadians = getHueDeltaRadians(
+    adjustedChromaLeft,
+    adjustedChromaRight,
+    hueLeft,
+    hueRight
   );
+  const hueDelta = 2 * Math.sqrt(adjustedChromaLeft * adjustedChromaRight) * Math.sin(hueDeltaRadians / 2);
+
+  const averageHue = getAverageHue(adjustedChromaLeft, adjustedChromaRight, hueLeft, hueRight);
+  const weightingTerm =
+    1 -
+    0.17 * Math.cos(averageHue - degreesToRadians(30)) +
+    0.24 * Math.cos(2 * averageHue) +
+    0.32 * Math.cos(3 * averageHue + degreesToRadians(6)) -
+    0.2 * Math.cos(4 * averageHue - degreesToRadians(63));
+
+  const lightnessScale =
+    1 +
+    (0.015 * (averageLightness - 50) ** 2) /
+      Math.sqrt(20 + (averageLightness - 50) ** 2);
+  const chromaScale = 1 + 0.045 * averageAdjustedChroma;
+  const hueScale = 1 + 0.015 * averageAdjustedChroma * weightingTerm;
+
+  const hueRotation =
+    30 *
+    Math.exp(-(((radiansToDegrees(averageHue) - 275) / 25) ** 2));
+  const rotationTerm =
+    -2 *
+    Math.sqrt(
+      averageAdjustedChroma ** 7 / (averageAdjustedChroma ** 7 + 25 ** 7)
+    ) *
+    Math.sin(degreesToRadians(2 * hueRotation));
+
+  const normalizedLightness = lightnessDelta / lightnessScale;
+  const normalizedChroma = chromaDelta / chromaScale;
+  const normalizedHue = hueDelta / hueScale;
+
+  return Math.sqrt(
+    normalizedLightness ** 2 +
+      normalizedChroma ** 2 +
+      normalizedHue ** 2 +
+      rotationTerm * normalizedChroma * normalizedHue
+  );
+}
+
+function getHueAngle(a: number, b: number) {
+  if (a === 0 && b === 0) {
+    return 0;
+  }
+
+  const angle = Math.atan2(b, a);
+  return angle >= 0 ? angle : angle + Math.PI * 2;
+}
+
+function getHueDeltaRadians(
+  chromaLeft: number,
+  chromaRight: number,
+  hueLeft: number,
+  hueRight: number
+) {
+  if (chromaLeft === 0 || chromaRight === 0) {
+    return 0;
+  }
+
+  let delta = hueRight - hueLeft;
+
+  if (delta > Math.PI) {
+    delta -= Math.PI * 2;
+  } else if (delta < -Math.PI) {
+    delta += Math.PI * 2;
+  }
+
+  return delta;
+}
+
+function getAverageHue(
+  chromaLeft: number,
+  chromaRight: number,
+  hueLeft: number,
+  hueRight: number
+) {
+  if (chromaLeft === 0 || chromaRight === 0) {
+    return hueLeft + hueRight;
+  }
+
+  const difference = Math.abs(hueLeft - hueRight);
+
+  if (difference <= Math.PI) {
+    return (hueLeft + hueRight) / 2;
+  }
+
+  return (hueLeft + hueRight + Math.PI * 2) / 2 - (hueLeft + hueRight >= Math.PI * 2 ? Math.PI : 0);
+}
+
+function degreesToRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function radiansToDegrees(value: number) {
+  return (value * 180) / Math.PI;
 }
 
 function hexToRgb(hex: string): RgbColor {

@@ -35,8 +35,8 @@
     "cardBody": "导入图片后按 Mard 221 色卡做最近色匹配，输出预览图、编码图纸和带色号的拼豆方案。",
     "routeTitle": "板子与图片区域",
     "routeBody": "可分别设置板子尺寸与图片区域尺寸，支持正方形优先、拉伸铺满与居中留白等常见工作流。",
-    "langTitle": "大图导出与统计",
-    "langBody": "支持独立大图导出页面、颜色颗粒汇总，以及中英日韩多语言切换，方便制作和分享。"
+    "langTitle": "减少颜色数量",
+    "langBody": "支持颜色合并容差调节，可把接近颜色合并成更少的珠子颜色，让实际拼制更容易。"
   },
   "PatternStudio": {
     "paletteLoadError": "颜色表加载失败，请确认 public/Mard221.csv 可访问。",
@@ -92,6 +92,9 @@
     "fitContain": "完整适配",
     "fitCover": "裁切填充",
     "fitStretch": "直接拉伸",
+    "colorMergeToleranceLabel": "颜色合并容差",
+    "colorMergeToleranceMin": "保留更多颜色",
+    "colorMergeToleranceHint": "数值越高，系统会把更接近的颜色合并成同一种珠子颜色，从而减少总颜色数。",
     "lockRatio": "锁定原图比例",
     "showCodes": "图纸显示编码",
     "zoomLabel": "图纸缩放",
