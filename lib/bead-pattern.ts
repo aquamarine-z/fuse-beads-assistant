@@ -385,9 +385,19 @@ function drawLegendSection(
     const x = legendX + column * (itemWidth + legendGap);
     const y = legendY + titleHeight + row * (itemHeight + legendGap);
 
+    context.shadowColor = "rgba(15, 23, 42, 0.18)";
+    context.shadowBlur = 6;
+    context.shadowOffsetY = 1;
     context.fillStyle = color.hex;
     roundRect(context, x, y + 6, 10, 10, 999);
     context.fill();
+    context.shadowColor = "transparent";
+    context.shadowBlur = 0;
+    context.shadowOffsetY = 0;
+
+    context.strokeStyle = "rgba(15, 23, 42, 0.14)";
+    context.lineWidth = 1;
+    context.stroke();
 
     context.fillStyle = "rgba(15, 23, 42, 0.92)";
     context.font = "600 11px ui-sans-serif, system-ui, sans-serif";
@@ -397,7 +407,7 @@ function drawLegendSection(
     context.textAlign = "right";
     context.fillStyle = "rgba(15, 23, 42, 0.92)";
     context.font = "600 11px ui-sans-serif, system-ui, sans-serif";
-    context.fillText(`${count}${beadUnit}`, x + itemWidth, y + 11);
+    context.fillText(`${count} ${beadUnit}`, x + itemWidth, y + 11);
     context.textAlign = "left";
   });
 }

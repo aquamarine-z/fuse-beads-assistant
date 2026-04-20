@@ -15,6 +15,7 @@ import {
   ImagePlus,
   LayoutGrid,
   Palette,
+  RefreshCw,
   Sparkles,
   SwatchBook,
 } from "lucide-react";
@@ -60,10 +61,16 @@ import {
   renderPatternToCanvas,
 } from "@/lib/bead-pattern";
 import {
+  readPatternImageFromIndexedDb,
+  savePatternImageToIndexedDb,
+} from "@/lib/pattern-image-store";
+import {
   PATTERN_EXPORT_CHANNEL,
-  PATTERN_EXPORT_PAYLOAD_KEY,
   PATTERN_STUDIO_ID_KEY,
   PATTERN_STUDIO_STORAGE_KEY,
+  type PatternExportTransferState,
+  type PatternStudioPersistedState,
+  persistPatternStudioState,
 } from "@/lib/pattern-studio-state";
 import { useTranslations } from "next-intl";
 
@@ -96,6 +103,7 @@ export function PatternStudio() {
   const [cellSize, setCellSize] = useState(24);
   const [activeTab, setActiveTab] = useState("preview");
   const [imageUrl, setImageUrl] = useState("");
+  const [imageStorageKey, setImageStorageKey] = useState("");
   const [imageTitle, setImageTitle] = useState("");
   const [sourceImage, setSourceImage] = useState<HTMLImageElement | null>(null);
   const [sourceSummary, setSourceSummary] = useState("");
@@ -103,6 +111,7 @@ export function PatternStudio() {
   const [patternKey, setPatternKey] = useState("");
   const [isPending, setIsPending] = useState(false);
   const [processingError, setProcessingError] = useState("");
+  const [isStateRestored, setIsStateRestored] = useState(false);
   const [lastEditedAxis, setLastEditedAxis] = useState<"width" | "height">("width");
   const [lastEditedImageAxis, setLastEditedImageAxis] = useState<"width" | "height">("width");
 
@@ -111,7 +120,7 @@ export function PatternStudio() {
   const planCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const planWithColorsCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const deferredPattern = useDeferredValue(pattern);
-  const exportStateRef = useRef<Record<string, unknown> | null>(null);
+  const exportStateRef = useRef<PatternExportTransferState | null>(null);
   const studioIdRef = useRef("");
   const currentPatternKey = useMemo(
     () =>
@@ -132,13 +141,6 @@ export function PatternStudio() {
   const planCellSize = useMemo(() => cellSize + 4, [cellSize]);
 
   const topColors = useMemo(() => deferredPattern?.counts.slice(0, 12) ?? [], [deferredPattern]);
-  const topColorCountDigits = useMemo(() => {
-    if (!topColors.length) {
-      return 1;
-    }
-
-    return Math.max(...topColors.map(({ count }) => String(count).length));
-  }, [topColors]);
 
   function buildExportFileName(kind: "preview" | "chart") {
     const baseName = sanitizeFileNameSegment(imageTitle || t("untitledImage"));
@@ -184,6 +186,7 @@ export function PatternStudio() {
     const existingStudioId = window.sessionStorage.getItem(PATTERN_STUDIO_ID_KEY);
     const studioId = existingStudioId || crypto.randomUUID();
     studioIdRef.current = studioId;
+    setImageStorageKey(`pattern-image:${studioId}`);
 
     if (!existingStudioId) {
       window.sessionStorage.setItem(PATTERN_STUDIO_ID_KEY, studioId);
@@ -191,63 +194,74 @@ export function PatternStudio() {
   }, []);
 
   useEffect(() => {
-    const saved = window.sessionStorage.getItem(PATTERN_STUDIO_STORAGE_KEY);
+    let active = true;
 
-    if (!saved) {
-      return;
+    async function restoreState() {
+      const saved = window.sessionStorage.getItem(PATTERN_STUDIO_STORAGE_KEY);
+
+      if (!saved) {
+        setIsStateRestored(true);
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(saved) as Partial<PatternStudioPersistedState>;
+
+        if (parsed.targetWidth) setTargetWidth(parsed.targetWidth);
+        if (parsed.targetHeight) setTargetHeight(parsed.targetHeight);
+        if (parsed.imageAreaWidth) setImageAreaWidth(parsed.imageAreaWidth);
+        if (parsed.imageAreaHeight) setImageAreaHeight(parsed.imageAreaHeight);
+        if (parsed.fitMode) setFitMode(parsed.fitMode);
+        if (typeof parsed.preferSquare === "boolean") setPreferSquare(parsed.preferSquare);
+        if (typeof parsed.lockAspectRatio === "boolean") setLockAspectRatio(parsed.lockAspectRatio);
+        if (typeof parsed.lockImageAspectRatio === "boolean") {
+          setLockImageAspectRatio(parsed.lockImageAspectRatio);
+        }
+        if (typeof parsed.showCodes === "boolean") setShowCodes(parsed.showCodes);
+        if (typeof parsed.cellSize === "number") setCellSize(parsed.cellSize);
+        if (parsed.activeTab) setActiveTab(parsed.activeTab);
+        if (parsed.imageStorageKey) setImageStorageKey(parsed.imageStorageKey);
+        if (parsed.imageTitle) setImageTitle(parsed.imageTitle);
+        if (parsed.sourceSummary) setSourceSummary(parsed.sourceSummary);
+        if (parsed.imageStorageKey) {
+          const storedImageUrl = await readPatternImageFromIndexedDb(parsed.imageStorageKey);
+
+          if (!active || !storedImageUrl) {
+            return;
+          }
+
+          hydrateImage(storedImageUrl, parsed.sourceSummary ?? "", {
+            targetWidth: parsed.targetWidth ?? 52,
+            targetHeight: parsed.targetHeight ?? 52,
+            imageAreaWidth: parsed.imageAreaWidth ?? 52,
+            imageAreaHeight: parsed.imageAreaHeight ?? 52,
+            preferSquare: parsed.preferSquare ?? true,
+            lockAspectRatio: parsed.lockAspectRatio ?? true,
+            lockImageAspectRatio: parsed.lockImageAspectRatio ?? true,
+          }, parsed.imageStorageKey);
+        }
+      } catch {
+        window.sessionStorage.removeItem(PATTERN_STUDIO_STORAGE_KEY);
+      } finally {
+        if (active) {
+          setIsStateRestored(true);
+        }
+      }
     }
 
-    try {
-      const parsed = JSON.parse(saved) as {
-        targetWidth?: number;
-        targetHeight?: number;
-        imageAreaWidth?: number;
-        imageAreaHeight?: number;
-        fitMode?: FitMode;
-        preferSquare?: boolean;
-        lockAspectRatio?: boolean;
-        lockImageAspectRatio?: boolean;
-        showCodes?: boolean;
-        cellSize?: number;
-        activeTab?: string;
-        imageUrl?: string;
-        imageTitle?: string;
-        sourceSummary?: string;
-      };
+    void restoreState();
 
-      if (parsed.targetWidth) setTargetWidth(parsed.targetWidth);
-      if (parsed.targetHeight) setTargetHeight(parsed.targetHeight);
-      if (parsed.imageAreaWidth) setImageAreaWidth(parsed.imageAreaWidth);
-      if (parsed.imageAreaHeight) setImageAreaHeight(parsed.imageAreaHeight);
-      if (parsed.fitMode) setFitMode(parsed.fitMode);
-      if (typeof parsed.preferSquare === "boolean") setPreferSquare(parsed.preferSquare);
-      if (typeof parsed.lockAspectRatio === "boolean") setLockAspectRatio(parsed.lockAspectRatio);
-      if (typeof parsed.lockImageAspectRatio === "boolean") {
-        setLockImageAspectRatio(parsed.lockImageAspectRatio);
-      }
-      if (typeof parsed.showCodes === "boolean") setShowCodes(parsed.showCodes);
-      if (typeof parsed.cellSize === "number") setCellSize(parsed.cellSize);
-      if (parsed.activeTab) setActiveTab(parsed.activeTab);
-      if (parsed.imageTitle) setImageTitle(parsed.imageTitle);
-      if (parsed.sourceSummary) setSourceSummary(parsed.sourceSummary);
-      if (parsed.imageUrl) {
-        hydrateImage(parsed.imageUrl, parsed.sourceSummary ?? "", {
-          targetWidth: parsed.targetWidth ?? 52,
-          targetHeight: parsed.targetHeight ?? 52,
-          imageAreaWidth: parsed.imageAreaWidth ?? 52,
-          imageAreaHeight: parsed.imageAreaHeight ?? 52,
-          preferSquare: parsed.preferSquare ?? true,
-          lockAspectRatio: parsed.lockAspectRatio ?? true,
-          lockImageAspectRatio: parsed.lockImageAspectRatio ?? true,
-        });
-      }
-    } catch {
-      window.sessionStorage.removeItem(PATTERN_STUDIO_STORAGE_KEY);
-    }
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
-    const nextState = {
+    if (!isStateRestored) {
+      return;
+    }
+
+    const nextState: PatternStudioPersistedState = {
       targetWidth,
       targetHeight,
       imageAreaWidth,
@@ -259,48 +273,21 @@ export function PatternStudio() {
       showCodes,
       cellSize,
       activeTab,
-      imageUrl,
+      imageStorageKey,
       imageTitle,
       sourceSummary,
-      pattern: patternKey === currentPatternKey ? pattern : null,
     };
 
-    exportStateRef.current = nextState;
+    persistPatternStudioState(nextState);
 
-    window.sessionStorage.setItem(
-      PATTERN_STUDIO_STORAGE_KEY,
-      JSON.stringify(nextState)
-    );
-
-    if (patternKey === currentPatternKey && pattern) {
-      const exportPayload = {
+    if (patternKey === currentPatternKey && pattern && imageUrl) {
+      exportStateRef.current = {
         exportKey: currentPatternKey,
+        ...nextState,
         imageUrl,
-        imageTitle,
-        sourceSummary,
-        fitMode,
-        preferSquare,
-        lockAspectRatio,
-        lockImageAspectRatio,
-        showCodes,
-        cellSize,
-        activeTab,
-        targetWidth,
-        targetHeight,
-        imageAreaWidth,
-        imageAreaHeight,
-        patternWidth: pattern.width,
-        patternHeight: pattern.height,
-        pattern,
       };
-
-      exportStateRef.current = exportPayload;
-      window.sessionStorage.setItem(
-        PATTERN_EXPORT_PAYLOAD_KEY,
-        JSON.stringify(exportPayload)
-      );
     } else {
-      window.sessionStorage.removeItem(PATTERN_EXPORT_PAYLOAD_KEY);
+      exportStateRef.current = null;
     }
   }, [
     activeTab,
@@ -308,7 +295,7 @@ export function PatternStudio() {
     fitMode,
     imageAreaHeight,
     imageAreaWidth,
-    imageUrl,
+    imageStorageKey,
     imageTitle,
     lockAspectRatio,
     lockImageAspectRatio,
@@ -319,6 +306,7 @@ export function PatternStudio() {
     sourceSummary,
     targetHeight,
     targetWidth,
+    isStateRestored,
   ]);
 
   useEffect(() => {
@@ -335,7 +323,7 @@ export function PatternStudio() {
 
       const nextState = exportStateRef.current;
 
-      if (!nextState || !nextState.imageUrl || !nextState.pattern) {
+      if (!nextState || !nextState.imageUrl) {
         channel.postMessage({ type: "state-unavailable" });
         return;
       }
@@ -448,17 +436,112 @@ export function PatternStudio() {
     reader.readAsDataURL(file);
   }
 
+  function parsePositiveIntegerInput(value: string) {
+    if (!value.trim()) {
+      return null;
+    }
+
+    const nextValue = Number(value);
+
+    if (!Number.isFinite(nextValue)) {
+      return null;
+    }
+
+    return Math.max(1, Math.round(nextValue));
+  }
+
+  function getLargestCoveredImageArea(
+    boardWidth: number,
+    boardHeight: number,
+    sourceRatio: number
+  ) {
+    if (!Number.isFinite(sourceRatio) || sourceRatio <= 0) {
+      return {
+        width: boardWidth,
+        height: boardHeight,
+      };
+    }
+
+    const widthUsingFullHeight = Math.max(
+      1,
+      Math.min(boardWidth, Math.round(boardHeight * sourceRatio))
+    );
+    const heightUsingFullWidth = Math.max(
+      1,
+      Math.min(boardHeight, Math.round(boardWidth / sourceRatio))
+    );
+
+    if (widthUsingFullHeight * boardHeight >= boardWidth * heightUsingFullWidth) {
+      return {
+        width: widthUsingFullHeight,
+        height: boardHeight,
+      };
+    }
+
+    return {
+      width: boardWidth,
+      height: heightUsingFullWidth,
+    };
+  }
+
+  function syncImageAreaWithBoard(
+    nextBoardWidth: number,
+    nextBoardHeight: number,
+    previousBoardWidth: number,
+    previousBoardHeight: number
+  ) {
+    if (fitMode === "stretch") {
+      setImageAreaWidth(nextBoardWidth);
+      setImageAreaHeight(nextBoardHeight);
+      return;
+    }
+
+    if (lockImageAspectRatio && sourceImage) {
+      const sourceRatio = sourceImage.naturalWidth / sourceImage.naturalHeight;
+      const nextImageArea = getLargestCoveredImageArea(
+        nextBoardWidth,
+        nextBoardHeight,
+        sourceRatio
+      );
+
+      setImageAreaWidth(nextImageArea.width);
+      setImageAreaHeight(nextImageArea.height);
+      return;
+    }
+
+    const safePreviousBoardWidth = Math.max(1, previousBoardWidth);
+    const safePreviousBoardHeight = Math.max(1, previousBoardHeight);
+    const widthScale = nextBoardWidth / safePreviousBoardWidth;
+    const heightScale = nextBoardHeight / safePreviousBoardHeight;
+
+    setImageAreaWidth((current) =>
+      Math.max(1, Math.min(nextBoardWidth, Math.round(current * widthScale)))
+    );
+    setImageAreaHeight((current) =>
+      Math.max(1, Math.min(nextBoardHeight, Math.round(current * heightScale)))
+    );
+  }
+
   function updateDimension(axis: "width" | "height", value: number) {
-    const safeValue = Number.isFinite(value) ? Math.min(200, Math.max(1, value)) : 1;
+    const safeValue = Number.isFinite(value) ? Math.max(1, Math.round(value)) : 1;
     setLastEditedAxis(axis);
 
     if (preferSquare) {
+      const previousBoardWidth = targetWidth;
+      const previousBoardHeight = targetHeight;
       setTargetWidth(safeValue);
       setTargetHeight(safeValue);
-      setImageAreaWidth((current) => Math.min(current, safeValue));
-      setImageAreaHeight((current) => Math.min(current, safeValue));
+      syncImageAreaWithBoard(
+        safeValue,
+        safeValue,
+        previousBoardWidth,
+        previousBoardHeight
+      );
       return;
     }
+
+    let nextBoardWidth = axis === "width" ? safeValue : targetWidth;
+    let nextBoardHeight = axis === "height" ? safeValue : targetHeight;
 
     if (axis === "width") {
       setTargetWidth(safeValue);
@@ -467,16 +550,21 @@ export function PatternStudio() {
     }
 
     if (!lockAspectRatio || !sourceImage) {
+      syncImageAreaWithBoard(nextBoardWidth, nextBoardHeight, targetWidth, targetHeight);
       return;
     }
 
     const ratio = sourceImage.naturalWidth / sourceImage.naturalHeight;
 
     if (axis === "width") {
-      setTargetHeight(Math.max(1, Math.round(safeValue / ratio)));
+      nextBoardHeight = Math.max(1, Math.round(safeValue / ratio));
+      setTargetHeight(nextBoardHeight);
     } else {
-      setTargetWidth(Math.max(1, Math.round(safeValue * ratio)));
+      nextBoardWidth = Math.max(1, Math.round(safeValue * ratio));
+      setTargetWidth(nextBoardWidth);
     }
+
+    syncImageAreaWithBoard(nextBoardWidth, nextBoardHeight, targetWidth, targetHeight);
   }
 
   function updateImageAreaDimension(axis: "width" | "height", value: number) {
@@ -510,10 +598,16 @@ export function PatternStudio() {
 
     if (checked) {
       const squareSize = Math.max(targetWidth, targetHeight);
+      const previousBoardWidth = targetWidth;
+      const previousBoardHeight = targetHeight;
       setTargetWidth(squareSize);
       setTargetHeight(squareSize);
-      setImageAreaWidth((current) => Math.min(squareSize, current));
-      setImageAreaHeight((current) => Math.min(squareSize, current));
+      syncImageAreaWithBoard(
+        squareSize,
+        squareSize,
+        previousBoardWidth,
+        previousBoardHeight
+      );
     }
   }
 
@@ -525,12 +619,18 @@ export function PatternStudio() {
     }
 
     const ratio = sourceImage.naturalWidth / sourceImage.naturalHeight;
+    let nextBoardWidth = targetWidth;
+    let nextBoardHeight = targetHeight;
 
     if (lastEditedAxis === "width") {
-      setTargetHeight(Math.max(1, Math.round(targetWidth / ratio)));
+      nextBoardHeight = Math.max(1, Math.round(targetWidth / ratio));
+      setTargetHeight(nextBoardHeight);
     } else {
-      setTargetWidth(Math.max(1, Math.round(targetHeight * ratio)));
+      nextBoardWidth = Math.max(1, Math.round(targetHeight * ratio));
+      setTargetWidth(nextBoardWidth);
     }
+
+    syncImageAreaWithBoard(nextBoardWidth, nextBoardHeight, targetWidth, targetHeight);
   }
 
   function handleImageAspectRatioToggle(checked: boolean) {
@@ -556,11 +656,17 @@ export function PatternStudio() {
       return;
     }
 
+    const previousBoardWidth = targetWidth;
+    const previousBoardHeight = targetHeight;
     setTargetWidth(preset.width);
     setTargetHeight(preset.height);
     setPreferSquare(preset.width === preset.height);
-    setImageAreaWidth((current) => Math.min(preset.width, current));
-    setImageAreaHeight((current) => Math.min(preset.height, current));
+    syncImageAreaWithBoard(
+      preset.width,
+      preset.height,
+      previousBoardWidth,
+      previousBoardHeight
+    );
   }
 
   function downloadCanvas(canvas: HTMLCanvasElement | null, fileName: string) {
@@ -605,11 +711,14 @@ export function PatternStudio() {
       preferSquare: boolean;
       lockAspectRatio: boolean;
       lockImageAspectRatio: boolean;
-    }
+    },
+    restoredStorageKey?: string
   ) {
     const image = new window.Image();
 
     image.onload = () => {
+      const nextImageStorageKey =
+        restoredStorageKey || imageStorageKey || `pattern-image:${studioIdRef.current || crypto.randomUUID()}`;
       const summary = restoredSummary || `${image.naturalWidth} x ${image.naturalHeight}px`;
       const sourceRatio = image.naturalWidth / image.naturalHeight;
       const isRestoring = Boolean(restoredConfig);
@@ -638,6 +747,7 @@ export function PatternStudio() {
           : Math.max(1, Math.min(nextBoardHeight, nextImageAreaHeight));
 
       setImageUrl(dataUrl);
+      setImageStorageKey(nextImageStorageKey);
       setSourceImage(image);
       setPattern(null);
       setPatternKey("");
@@ -647,6 +757,7 @@ export function PatternStudio() {
       setTargetHeight(nextBoardHeight);
       setImageAreaWidth(Math.min(nextBoardWidth, nextImageWidth));
       setImageAreaHeight(Math.min(nextBoardHeight, nextImageHeight));
+      void savePatternImageToIndexedDb(nextImageStorageKey, dataUrl);
     };
 
     image.onerror = () => {
@@ -662,26 +773,26 @@ export function PatternStudio() {
       <div className="absolute inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(circle_at_20%_20%,color-mix(in_oklab,var(--primary),transparent_68%),transparent_35%),radial-gradient(circle_at_80%_0%,color-mix(in_oklab,var(--chart-2),transparent_65%),transparent_30%)] blur-3xl" />
 
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <Link
             href="/"
-            className={buttonVariants({ variant: "outline", className: "rounded-2xl" })}
+            className={buttonVariants({ variant: "outline", className: "w-full rounded-2xl sm:w-auto" })}
           >
             {t("eyebrow")}
           </Link>
           <TitlebarControls />
         </div>
-        <header className="grid gap-6 rounded-[2rem] border border-white/60 bg-white/70 p-5 shadow-[0_30px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5 md:p-7">
+        <header className="grid gap-5 rounded-[2rem] border border-white/60 bg-white/70 p-4 shadow-[0_30px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5 sm:p-5 md:gap-6 md:p-7">
           <div className="flex flex-col gap-5">
             <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-sm text-muted-foreground shadow-sm dark:border-white/10 dark:bg-white/5">
               <Sparkles className="size-4 text-primary" />
               {t("eyebrow")}
             </div>
             <div className="flex max-w-3xl flex-col gap-3">
-              <h1 className="text-4xl font-semibold tracking-tight text-balance md:text-6xl">
+              <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl md:text-6xl">
                 <span className="font-heading">{t("title")}</span>
               </h1>
-              <p className="max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
+              <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7 md:text-lg">
                 {t("description")}
               </p>
             </div>
@@ -700,7 +811,7 @@ export function PatternStudio() {
         </header>
 
         <div className="grid items-start gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-          <Card className="rounded-[2rem] border-white/60 bg-white/70 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+          <Card className="min-w-0 rounded-[2rem] border-white/60 bg-white/70 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
             <CardHeader className="gap-2">
               <CardTitle className="flex items-center gap-2 text-2xl">
                 <ImagePlus className="text-primary" />
@@ -731,11 +842,15 @@ export function PatternStudio() {
                     />
                     <Button
                       size="lg"
-                      className="rounded-2xl"
+                      className="w-full rounded-2xl"
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      <ImagePlus data-icon="inline-start" />
-                      {t("selectImage")}
+                      {imageUrl ? (
+                        <RefreshCw data-icon="inline-start" />
+                      ) : (
+                        <ImagePlus data-icon="inline-start" />
+                      )}
+                      {imageUrl ? t("reimportImage") : t("selectImage")}
                     </Button>
                     <p className="text-xs leading-6 text-muted-foreground">
                       {t("uploadHint")}
@@ -787,9 +902,16 @@ export function PatternStudio() {
                       id="target-width"
                       type="number"
                       min={1}
-                      max={200}
                       value={targetWidth}
-                      onChange={(event) => updateDimension("width", Number(event.target.value))}
+                      onChange={(event) => {
+                        const nextValue = parsePositiveIntegerInput(event.target.value);
+
+                        if (nextValue === null) {
+                          return;
+                        }
+
+                        updateDimension("width", nextValue);
+                      }}
                     />
                     <FieldDescription>{t("widthHint")}</FieldDescription>
                   </FieldContent>
@@ -802,10 +924,17 @@ export function PatternStudio() {
                       id="target-height"
                       type="number"
                       min={1}
-                      max={200}
                       value={targetHeight}
                       disabled={preferSquare}
-                      onChange={(event) => updateDimension("height", Number(event.target.value))}
+                      onChange={(event) => {
+                        const nextValue = parsePositiveIntegerInput(event.target.value);
+
+                        if (nextValue === null) {
+                          return;
+                        }
+
+                        updateDimension("height", nextValue);
+                      }}
                     />
                     <FieldDescription>
                       {preferSquare ? t("heightSquareHint") : t("heightHint")}
@@ -831,9 +960,15 @@ export function PatternStudio() {
                       min={1}
                       max={targetWidth}
                       value={imageAreaWidth}
-                      onChange={(event) =>
-                        updateImageAreaDimension("width", Number(event.target.value))
-                      }
+                      onChange={(event) => {
+                        const nextValue = parsePositiveIntegerInput(event.target.value);
+
+                        if (nextValue === null) {
+                          return;
+                        }
+
+                        updateImageAreaDimension("width", nextValue);
+                      }}
                     />
                     <FieldDescription>{t("imageAreaWidthHint")}</FieldDescription>
                   </FieldContent>
@@ -849,9 +984,15 @@ export function PatternStudio() {
                       max={targetHeight}
                       value={imageAreaHeight}
                       disabled={lockImageAspectRatio}
-                      onChange={(event) =>
-                        updateImageAreaDimension("height", Number(event.target.value))
-                      }
+                      onChange={(event) => {
+                        const nextValue = parsePositiveIntegerInput(event.target.value);
+
+                        if (nextValue === null) {
+                          return;
+                        }
+
+                        updateImageAreaDimension("height", nextValue);
+                      }}
                     />
                     <FieldDescription>
                       {lockImageAspectRatio ? t("imageAreaHeightLockedHint") : t("imageAreaHeightHint")}
@@ -873,7 +1014,9 @@ export function PatternStudio() {
                   <FieldContent>
                     <Select value={fitMode} onValueChange={(value) => setFitMode(value as FitMode)}>
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder={t("fitPlaceholder")} />
+                        <SelectValue placeholder={t("fitPlaceholder")}>
+                          {t(`fit${FIT_MODES.find((item) => item.value === fitMode)?.key ?? "Contain"}`)}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
@@ -937,8 +1080,8 @@ export function PatternStudio() {
             </CardContent>
           </Card>
 
-          <div className="flex flex-col gap-6">
-            <Card className="rounded-[2rem] border-white/60 bg-white/70 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+          <div className="min-w-0 flex flex-col gap-6">
+            <Card className="min-w-0 rounded-[2rem] border-white/60 bg-white/70 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
               <CardHeader className="gap-3 md:flex-row md:items-end md:justify-between">
                 <div className="space-y-2">
                   <CardTitle className="flex items-center gap-2 text-2xl">
@@ -947,7 +1090,7 @@ export function PatternStudio() {
                   </CardTitle>
                   <CardDescription>{t("workspaceDesc")}</CardDescription>
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="grid w-full grid-cols-1 gap-3 sm:flex sm:w-auto sm:flex-wrap">
                   <Button
                     className="rounded-2xl"
                     disabled={!isPatternReadyForExport}
@@ -970,7 +1113,7 @@ export function PatternStudio() {
                   </Button>
                   <Button
                     variant="secondary"
-                    className="rounded-2xl"
+                    className="rounded-2xl sm:w-auto"
                     disabled={!deferredPattern}
                     onClick={() =>
                       downloadPatternImage({
@@ -986,7 +1129,7 @@ export function PatternStudio() {
                   </Button>
                   <Button
                     variant="secondary"
-                    className="rounded-2xl"
+                    className="rounded-2xl sm:w-auto"
                     disabled={!deferredPattern}
                     onClick={() =>
                       downloadPatternImage({
@@ -1004,11 +1147,19 @@ export function PatternStudio() {
               </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col gap-4">
-                  <TabsList className="grid w-full grid-cols-4 rounded-2xl">
-                    <TabsTrigger value="preview">{t("tabPreview")}</TabsTrigger>
-                    <TabsTrigger value="plan">{t("tabPlan")}</TabsTrigger>
-                    <TabsTrigger value="plan-colors">{t("tabPlanColors")}</TabsTrigger>
-                    <TabsTrigger value="source">{t("tabSource")}</TabsTrigger>
+                  <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-2xl sm:grid-cols-4">
+                    <TabsTrigger value="preview" className="h-auto px-2 py-2 text-xs leading-tight whitespace-normal sm:text-sm">
+                      {t("tabPreview")}
+                    </TabsTrigger>
+                    <TabsTrigger value="plan" className="h-auto px-2 py-2 text-xs leading-tight whitespace-normal sm:text-sm">
+                      {t("tabPlan")}
+                    </TabsTrigger>
+                    <TabsTrigger value="plan-colors" className="h-auto px-2 py-2 text-xs leading-tight whitespace-normal sm:text-sm">
+                      {t("tabPlanColors")}
+                    </TabsTrigger>
+                    <TabsTrigger value="source" className="h-auto px-2 py-2 text-xs leading-tight whitespace-normal sm:text-sm">
+                      {t("tabSource")}
+                    </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="preview">
@@ -1046,15 +1197,15 @@ export function PatternStudio() {
                             {topColors.map(({ color, count }) => (
                               <div
                                 key={`plan-colors-${color.tag}`}
-                                className="grid w-[9.5rem] grid-cols-[auto_minmax(2.5rem,1fr)_auto] items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-xs"
+                                className="grid w-[10.75rem] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-xs"
                               >
                                 <span
                                   className="size-4 rounded-full border border-white/70 shadow-sm"
                                   style={{ backgroundColor: color.hex }}
                                 />
-                                <span className="truncate font-medium">{color.tag}</span>
-                                <span className="text-right tabular-nums text-muted-foreground">
-                                  {`${String(count).padStart(topColorCountDigits, "0")}${t("beadUnitShort")}`}
+                                <span className="min-w-0 truncate font-medium">{color.tag}</span>
+                                <span className="min-w-[4rem] text-right tabular-nums text-muted-foreground">
+                                  {`${count} ${t("beadUnitShort")}`}
                                 </span>
                               </div>
                             ))}
@@ -1112,7 +1263,7 @@ export function PatternStudio() {
             </Card>
 
             <div className="grid items-start gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-              <Card className="rounded-[2rem] border-white/60 bg-white/70 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+              <Card className="min-w-0 rounded-[2rem] border-white/60 bg-white/70 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-xl">
                     <SwatchBook className="text-primary" />
@@ -1146,7 +1297,7 @@ export function PatternStudio() {
                 </CardContent>
               </Card>
 
-              <Card className="rounded-[2rem] border-white/60 bg-white/70 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+              <Card className="min-w-0 rounded-[2rem] border-white/60 bg-white/70 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-xl">
                     <Droplets className="text-primary" />
@@ -1202,7 +1353,7 @@ function CanvasPanel({
 }) {
   return (
     <div className="overflow-auto rounded-[1.75rem] border border-border/70 bg-background/80 p-4">
-      <div className="mx-auto flex min-h-[24rem] min-w-full w-max items-center justify-center">
+      <div className="mx-auto flex min-h-[18rem] min-w-full w-max items-center justify-center sm:min-h-[24rem]">
       {hasContent ? (
         <canvas
           ref={canvasRef}
@@ -1219,7 +1370,7 @@ function CanvasPanel({
 function CanvasPanelShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="overflow-auto rounded-[1.75rem] border border-border/70 bg-background/80 p-4">
-      <div className="mx-auto flex min-h-[24rem] min-w-full w-max items-center justify-center">
+      <div className="mx-auto flex min-h-[18rem] min-w-full w-max items-center justify-center sm:min-h-[24rem]">
         {children}
       </div>
     </div>

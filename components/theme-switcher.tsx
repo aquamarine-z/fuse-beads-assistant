@@ -88,12 +88,12 @@ export function ThemeSwitcher() {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-3">
+    <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
       <Select value={mode} onValueChange={handleModeChange}>
-        <SelectTrigger aria-label={t("themeLabel")} className="min-w-32 rounded-2xl bg-background/75">
+        <SelectTrigger aria-label={t("themeLabel")} className="w-full min-w-0 rounded-2xl bg-background/75 sm:w-auto sm:min-w-32">
           <SelectValue>{t(mode)}</SelectValue>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="max-h-[24rem]">
           <SelectGroup>
             <SelectItem value="system">{t("system")}</SelectItem>
             <SelectItem value="light">{t("light")}</SelectItem>
@@ -103,7 +103,7 @@ export function ThemeSwitcher() {
       </Select>
 
       <Select value={accent} onValueChange={handleAccentChange}>
-        <SelectTrigger aria-label={t("accentLabel")} className="min-w-32 rounded-2xl bg-background/75">
+        <SelectTrigger aria-label={t("accentLabel")} className="w-full min-w-0 rounded-2xl bg-background/75 sm:w-auto sm:min-w-32">
           <SelectValue>
             <span className="inline-flex items-center gap-2">
               <span
@@ -114,7 +114,7 @@ export function ThemeSwitcher() {
             </span>
           </SelectValue>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="max-h-[24rem]">
           <SelectGroup>
             <SelectItem value="peach">
               <span className="inline-flex items-center gap-2">

@@ -9,38 +9,23 @@ import { Switch } from "@/components/ui/switch";
 import { TitlebarControls } from "@/components/titlebar-controls";
 import { Link } from "@/i18n/navigation";
 import {
+  generatePatternFromImage,
+  parsePaletteCsv,
+  type PaletteColor,
   type PatternResult,
   renderPatternExportToCanvas,
 } from "@/lib/bead-pattern";
+import { readPatternImageFromIndexedDb } from "@/lib/pattern-image-store";
 import {
   PATTERN_EXPORT_CHANNEL,
-  PATTERN_EXPORT_PAYLOAD_KEY,
   PATTERN_STUDIO_STORAGE_KEY,
+  type PatternStudioPersistedState,
+  persistPatternStudioState,
 } from "@/lib/pattern-studio-state";
-
-type PersistedState = {
-  exportKey?: string;
-  imageUrl?: string;
-  imageTitle?: string;
-  sourceSummary?: string;
-  fitMode?: "contain" | "cover" | "stretch";
-  preferSquare?: boolean;
-  lockAspectRatio?: boolean;
-  lockImageAspectRatio?: boolean;
-  showCodes?: boolean;
-  cellSize?: number;
-  activeTab?: string;
-  targetWidth?: number;
-  targetHeight?: number;
-  imageAreaWidth?: number;
-  imageAreaHeight?: number;
-  patternWidth?: number;
-  patternHeight?: number;
-  pattern?: PatternResult | null;
-};
 
 export function PatternExportViewer() {
   const t = useTranslations("PatternExport");
+  const [palette, setPalette] = useState<PaletteColor[]>([]);
   const [pattern, setPattern] = useState<PatternResult | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [imageTitle, setImageTitle] = useState("");
@@ -50,7 +35,8 @@ export function PatternExportViewer() {
   const [imageAreaWidth, setImageAreaWidth] = useState(52);
   const [imageAreaHeight, setImageAreaHeight] = useState(52);
   const [showCodes, setShowCodes] = useState(true);
-  const [persistedState, setPersistedState] = useState<PersistedState | null>(null);
+  const [persistedState, setPersistedState] = useState<PatternStudioPersistedState | null>(null);
+  const [sourceImage, setSourceImage] = useState<HTMLImageElement | null>(null);
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -74,27 +60,79 @@ export function PatternExportViewer() {
   })();
 
   useEffect(() => {
-    const saved = window.sessionStorage.getItem(PATTERN_EXPORT_PAYLOAD_KEY);
-    let fallbackState: PersistedState | null = null;
-    const allowFallbackState = !window.opener;
+    let active = true;
+
+    fetch("/Mard221.csv")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Unable to read palette file.");
+        }
+
+        return response.text();
+      })
+      .then((text) => {
+        if (!active) {
+          return;
+        }
+
+        setPalette(parsePaletteCsv(text));
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+
+        setError(t("missingData"));
+        setIsPending(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [t]);
+
+  useEffect(() => {
     const sourceStudioId = new URLSearchParams(window.location.search).get("source");
+    const saved = window.sessionStorage.getItem(PATTERN_STUDIO_STORAGE_KEY);
+    let fallbackState: PatternStudioPersistedState | null = null;
 
     if (saved) {
       try {
-        const parsed = JSON.parse(saved) as PersistedState;
+        const parsed = JSON.parse(saved) as Partial<PatternStudioPersistedState>;
 
         if (
-          allowFallbackState &&
-          parsed.imageUrl &&
-          parsed.pattern &&
           typeof parsed.targetWidth === "number" &&
-          typeof parsed.targetHeight === "number"
+          typeof parsed.targetHeight === "number" &&
+          typeof parsed.imageAreaWidth === "number" &&
+          typeof parsed.imageAreaHeight === "number" &&
+          typeof parsed.fitMode === "string" &&
+          typeof parsed.preferSquare === "boolean" &&
+          typeof parsed.lockAspectRatio === "boolean" &&
+          typeof parsed.lockImageAspectRatio === "boolean" &&
+          typeof parsed.showCodes === "boolean" &&
+          typeof parsed.cellSize === "number" &&
+          typeof parsed.activeTab === "string" &&
+          typeof parsed.imageStorageKey === "string" &&
+          typeof parsed.imageTitle === "string" &&
+          typeof parsed.sourceSummary === "string"
         ) {
-          fallbackState = parsed;
+          fallbackState = parsed as PatternStudioPersistedState;
         }
       } catch {
-        window.sessionStorage.removeItem(PATTERN_EXPORT_PAYLOAD_KEY);
+        // Ignore malformed same-tab state and wait for a fresh broadcast payload.
       }
+    }
+
+    if (!sourceStudioId) {
+      if (fallbackState) {
+        setPersistedState(fallbackState);
+        setError("");
+      } else {
+        setError(t("missingData"));
+        setIsPending(false);
+      }
+
+      return;
     }
 
     const channel = new BroadcastChannel(PATTERN_EXPORT_CHANNEL);
@@ -102,43 +140,22 @@ export function PatternExportViewer() {
     let attempt = 0;
 
     channel.onmessage = (event) => {
-      if (
-        event.data?.type === "provide-state" &&
-        event.data.payload?.imageUrl &&
-        event.data.payload?.pattern
-      ) {
+      if (event.data?.type === "provide-state" && event.data.payload?.imageUrl) {
         resolved = true;
-        window.sessionStorage.setItem(
-          PATTERN_EXPORT_PAYLOAD_KEY,
-          JSON.stringify(event.data.payload)
-        );
-        window.sessionStorage.setItem(
-          PATTERN_STUDIO_STORAGE_KEY,
-          JSON.stringify({
-            targetWidth: event.data.payload.targetWidth,
-            targetHeight: event.data.payload.targetHeight,
-            imageAreaWidth: event.data.payload.imageAreaWidth,
-            imageAreaHeight: event.data.payload.imageAreaHeight,
-            fitMode: event.data.payload.fitMode,
-            preferSquare: event.data.payload.preferSquare,
-            lockAspectRatio: event.data.payload.lockAspectRatio,
-            lockImageAspectRatio: event.data.payload.lockImageAspectRatio,
-            showCodes: event.data.payload.showCodes,
-            cellSize: event.data.payload.cellSize,
-            activeTab: event.data.payload.activeTab ?? "plan",
-            imageUrl: event.data.payload.imageUrl,
-            imageTitle: event.data.payload.imageTitle,
-            sourceSummary: event.data.payload.sourceSummary,
-          })
-        );
-        setPersistedState(event.data.payload as PersistedState);
+        setImageUrl(event.data.payload.imageUrl as string);
+        setPersistedState(event.data.payload as PatternStudioPersistedState);
         channel.close();
       }
 
       if (event.data?.type === "state-unavailable") {
         resolved = true;
-        setError(t("missingData"));
-        setIsPending(false);
+        if (fallbackState) {
+          setPersistedState(fallbackState);
+          setError("");
+        } else {
+          setError(t("missingData"));
+          setIsPending(false);
+        }
         channel.close();
       }
     };
@@ -159,7 +176,6 @@ export function PatternExportViewer() {
         if (fallbackState) {
           setPersistedState(fallbackState);
           setError("");
-          setIsPending(false);
         } else {
           setError(t("missingData"));
           setIsPending(false);
@@ -183,20 +199,6 @@ export function PatternExportViewer() {
       return;
     }
 
-    if (
-      !persistedState.imageUrl ||
-      !persistedState.pattern ||
-      typeof persistedState.targetWidth !== "number" ||
-      typeof persistedState.targetHeight !== "number" ||
-      typeof persistedState.imageAreaWidth !== "number" ||
-      typeof persistedState.imageAreaHeight !== "number"
-    ) {
-      setError(t("missingData"));
-      setIsPending(false);
-      return;
-    }
-
-    setImageUrl(persistedState.imageUrl);
     setImageTitle(persistedState.imageTitle ?? "");
     setSourceSummary(persistedState.sourceSummary ?? "");
     setTargetWidth(persistedState.targetWidth);
@@ -204,29 +206,118 @@ export function PatternExportViewer() {
     setImageAreaWidth(persistedState.imageAreaWidth);
     setImageAreaHeight(persistedState.imageAreaHeight);
     setShowCodes(persistedState.showCodes ?? true);
-    setPattern(persistedState.pattern);
-    window.sessionStorage.setItem(
-      PATTERN_STUDIO_STORAGE_KEY,
-      JSON.stringify({
-        targetWidth: persistedState.targetWidth,
-        targetHeight: persistedState.targetHeight,
-        imageAreaWidth: persistedState.imageAreaWidth,
-        imageAreaHeight: persistedState.imageAreaHeight,
-        fitMode: persistedState.fitMode,
-        preferSquare: persistedState.preferSquare,
-        lockAspectRatio: persistedState.lockAspectRatio,
-        lockImageAspectRatio: persistedState.lockImageAspectRatio,
-        showCodes: persistedState.showCodes,
-        cellSize: persistedState.cellSize,
-        activeTab: persistedState.activeTab ?? "plan",
-        imageUrl: persistedState.imageUrl,
-        imageTitle: persistedState.imageTitle,
-        sourceSummary: persistedState.sourceSummary,
-      })
-    );
+    persistPatternStudioState({
+      targetWidth: persistedState.targetWidth,
+      targetHeight: persistedState.targetHeight,
+      imageAreaWidth: persistedState.imageAreaWidth,
+      imageAreaHeight: persistedState.imageAreaHeight,
+      fitMode: persistedState.fitMode,
+      preferSquare: persistedState.preferSquare,
+      lockAspectRatio: persistedState.lockAspectRatio,
+      lockImageAspectRatio: persistedState.lockImageAspectRatio,
+      showCodes: persistedState.showCodes,
+      cellSize: persistedState.cellSize,
+      activeTab: persistedState.activeTab,
+      imageStorageKey: persistedState.imageStorageKey,
+      imageTitle: persistedState.imageTitle,
+      sourceSummary: persistedState.sourceSummary,
+    });
     setError("");
-    setIsPending(false);
-  }, [persistedState, t]);
+  }, [persistedState]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function resolveImage() {
+      if (!persistedState) {
+        return;
+      }
+
+      if (imageUrl) {
+        return;
+      }
+
+      if (!persistedState.imageStorageKey) {
+        setError(t("missingData"));
+        setIsPending(false);
+        return;
+      }
+
+      const storedImageUrl = await readPatternImageFromIndexedDb(
+        persistedState.imageStorageKey
+      );
+
+      if (!active) {
+        return;
+      }
+
+      if (!storedImageUrl) {
+        setError(t("missingData"));
+        setIsPending(false);
+        return;
+      }
+
+      setImageUrl(storedImageUrl);
+    }
+
+    void resolveImage();
+
+    return () => {
+      active = false;
+    };
+  }, [imageUrl, persistedState, t]);
+
+  useEffect(() => {
+    if (!imageUrl) {
+      return;
+    }
+
+    const image = new window.Image();
+    setIsPending(true);
+
+    image.onload = () => {
+      setSourceImage(image);
+      setError("");
+    };
+
+    image.onerror = () => {
+      setPattern(null);
+      setSourceImage(null);
+      setError(t("missingData"));
+      setIsPending(false);
+    };
+
+    image.src = imageUrl;
+  }, [imageUrl, t]);
+
+  useEffect(() => {
+    if (!persistedState || !sourceImage || !palette.length) {
+      return;
+    }
+
+    setIsPending(true);
+
+    try {
+      const nextPattern = generatePatternFromImage(
+        sourceImage,
+        palette,
+        persistedState.targetWidth,
+        persistedState.targetHeight,
+        persistedState.imageAreaWidth,
+        persistedState.imageAreaHeight,
+        persistedState.fitMode,
+        "H2"
+      );
+
+      setPattern(nextPattern);
+      setError("");
+    } catch {
+      setPattern(null);
+      setError(t("missingData"));
+    } finally {
+      setIsPending(false);
+    }
+  }, [palette, persistedState, sourceImage, t]);
 
   useEffect(() => {
     if (!pattern || !canvasRef.current) {
@@ -261,6 +352,8 @@ export function PatternExportViewer() {
 
   return (
     <main className="relative min-h-screen overflow-hidden">
+      <div className="pointer-events-none fixed inset-0 -z-20 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.9),transparent_40%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.65),transparent_30%),linear-gradient(180deg,var(--background),color-mix(in_oklab,var(--background),var(--primary)_8%))]" />
+      <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(circle_at_20%_20%,color-mix(in_oklab,var(--primary),transparent_68%),transparent_35%),radial-gradient(circle_at_80%_0%,color-mix(in_oklab,var(--chart-2),transparent_65%),transparent_30%)] blur-3xl" />
       <section className="mx-auto flex w-full max-w-[min(100%,1800px)] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <div className="flex items-center justify-between gap-4">
           <Link

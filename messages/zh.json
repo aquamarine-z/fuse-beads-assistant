@@ -65,6 +65,7 @@
     "uploadTitle": "导入源图",
     "uploadDesc": "支持 PNG、JPG、WEBP，建议主体清晰、颜色层次明确。",
     "selectImage": "选择图片",
+    "reimportImage": "重新导入图片",
     "uploadHint": "图纸生成会使用你当前指定的长 x 宽颗粒数，而不是原始像素尺寸。",
     "imageTitleLabel": "图片标题",
     "imageTitlePlaceholder": "给这张图起一个名字",

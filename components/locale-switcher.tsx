@@ -32,10 +32,10 @@ export function LocaleSwitcher() {
         );
       }}
     >
-      <SelectTrigger aria-label={t("label")} className="min-w-36 rounded-2xl bg-background/75">
+      <SelectTrigger aria-label={t("label")} className="w-full min-w-0 rounded-2xl bg-background/75 sm:w-auto sm:min-w-36">
         <SelectValue>{t(locale as AppLocale)}</SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="max-h-[24rem]">
         <SelectGroup>
           {routing.locales.map((item) => (
             <SelectItem key={item} value={item}>

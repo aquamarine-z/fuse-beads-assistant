@@ -65,6 +65,7 @@
     "uploadTitle": "Import source image",
     "uploadDesc": "PNG, JPG, and WEBP are supported. Clear subjects and distinct color blocks work best.",
     "selectImage": "Choose image",
+    "reimportImage": "Re-import image",
     "uploadHint": "The generated plan uses the bead width and height you set here, not the source pixel size.",
     "imageTitleLabel": "Image title",
     "imageTitlePlaceholder": "Name this image",
