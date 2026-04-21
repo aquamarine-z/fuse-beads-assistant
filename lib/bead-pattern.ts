@@ -306,6 +306,24 @@ export function renderPatternExportToCanvas(
   });
 }
 
+export function derivePatternExportCellSize(pattern: PatternResult | null) {
+  if (!pattern) {
+    return 24;
+  }
+
+  const longestSide = Math.max(pattern.width, pattern.height);
+  const maxTagLength = pattern.cells.reduce(
+    (max, cell) => Math.max(max, cell.tag.length),
+    0
+  );
+  const bump = maxTagLength >= 3 ? 2 : 0;
+
+  if (longestSide <= 52) return 28 + bump;
+  if (longestSide <= 80) return 24 + bump;
+  if (longestSide <= 120) return 20 + bump;
+  return 16 + bump;
+}
+
 function drawAxisLabels(
   context: CanvasRenderingContext2D,
   pattern: PatternResult,
@@ -452,7 +470,7 @@ export function generatePatternFromImage(
   fitMode: FitMode,
   samplingMode: SamplingMode = "smooth",
   colorMergeTolerance = 0,
-  backgroundTag = "H2"
+  backgroundTag = "H1"
 ): PatternResult {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d", { willReadFrequently: true });
@@ -464,7 +482,8 @@ export function generatePatternFromImage(
   canvas.width = boardWidth;
   canvas.height = boardHeight;
   context.imageSmoothingEnabled = true;
-  context.fillStyle = findPaletteBackground(palette, backgroundTag).hex;
+  const resolvedBackgroundTag = resolveBackgroundTag(palette, backgroundTag);
+  context.fillStyle = findPaletteBackground(palette, resolvedBackgroundTag).hex;
   context.fillRect(0, 0, boardWidth, boardHeight);
 
   const sourceWidth = image.naturalWidth || image.width;
@@ -494,7 +513,7 @@ export function generatePatternFromImage(
   const roundedDrawHeight = Math.round(drawHeight);
   const drawX = Math.round(imageAreaX + (imageWidth - roundedDrawWidth) / 2);
   const drawY = Math.round(imageAreaY + (imageHeight - roundedDrawHeight) / 2);
-  const backgroundColor = findPaletteBackground(palette, backgroundTag);
+  const backgroundColor = findPaletteBackground(palette, resolvedBackgroundTag);
 
   if (samplingMode === "precise") {
     const precisePattern = generatePatternWithPreciseSampling(image, palette, {
@@ -511,9 +530,9 @@ export function generatePatternFromImage(
       backgroundColor,
     });
 
-    return colorMergeTolerance > 0
-      ? mergePatternColors(precisePattern, colorMergeTolerance, backgroundTag)
-      : precisePattern;
+      return colorMergeTolerance > 0
+      ? mergePatternColors(precisePattern, colorMergeTolerance, resolvedBackgroundTag)
+        : precisePattern;
   }
 
   if (roundedDrawWidth > 0 && roundedDrawHeight > 0) {
@@ -564,7 +583,7 @@ export function generatePatternFromImage(
   const initialPattern = buildPatternResult(boardWidth, boardHeight, cells);
 
   return colorMergeTolerance > 0
-    ? mergePatternColors(initialPattern, colorMergeTolerance, backgroundTag)
+    ? mergePatternColors(initialPattern, colorMergeTolerance, resolvedBackgroundTag)
     : initialPattern;
 }
 
@@ -855,6 +874,18 @@ function findNearestPaletteColor(
 
 function findPaletteBackground(palette: PaletteColor[], tag: string) {
   return palette.find((item) => item.tag === tag) ?? palette[0];
+}
+
+function resolveBackgroundTag(palette: PaletteColor[], requestedTag: string) {
+  if (palette.some((item) => item.tag === requestedTag)) {
+    return requestedTag;
+  }
+
+  if (palette.some((item) => item.tag === "H1")) {
+    return "H1";
+  }
+
+  return palette[0]?.tag ?? requestedTag;
 }
 
 function mergePatternColors(

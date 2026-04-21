@@ -1,7 +1,6 @@
-import {Sparkles, Languages, Route} from "lucide-react";
+import {Download, Sparkles, Languages, Route} from "lucide-react";
 import {getTranslations, setRequestLocale} from "next-intl/server";
 
-import {Badge} from "@/components/ui/badge";
 import {buttonVariants} from "@/components/ui/button";
 import {Card, CardContent, CardHeader, CardTitle, CardDescription} from "@/components/ui/card";
 import {TitlebarControls} from "@/components/titlebar-controls";
@@ -25,10 +24,6 @@ export default async function LocalizedHome({
 
         <div className="grid flex-1 items-center gap-8 lg:grid-cols-[1.3fr_0.9fr]">
           <div className="flex flex-col gap-6">
-            <Badge variant="secondary" className="w-fit rounded-full px-3 py-1">
-              <Sparkles className="mr-2 size-4 text-primary" />
-              {t("eyebrow")}
-            </Badge>
             <div className="flex max-w-3xl flex-col gap-4">
               <h1 className="font-heading text-5xl font-semibold tracking-tight text-balance md:text-7xl">
                 {t("title")}
@@ -72,6 +67,11 @@ export default async function LocalizedHome({
               icon={<Sparkles className="size-5 text-primary" />}
               title={t("cardTitle")}
               body={t("cardBody")}
+            />
+            <InfoCard
+              icon={<Download className="size-5 text-primary" />}
+              title={t("pwaTitle")}
+              body={t("pwaBody")}
             />
           </div>
         </div>

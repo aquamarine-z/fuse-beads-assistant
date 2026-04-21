@@ -7,6 +7,7 @@ export type PatternStudioPersistedState = {
   targetHeight: number;
   imageAreaWidth: number;
   imageAreaHeight: number;
+  backgroundTag: string;
   fitMode: "contain" | "cover" | "stretch";
   samplingMode: "smooth" | "precise";
   colorMergeTolerance: number;

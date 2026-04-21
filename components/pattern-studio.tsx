@@ -54,12 +54,14 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { TitlebarControls } from "@/components/titlebar-controls";
 import { Link } from "@/i18n/navigation";
 import {
+  derivePatternExportCellSize,
   type FitMode,
   type PaletteColor,
   type PatternResult,
   type SamplingMode,
   generatePatternFromImage,
   parsePaletteCsv,
+  renderPatternExportToCanvas,
   renderPatternToCanvas,
 } from "@/lib/bead-pattern";
 import {
@@ -99,12 +101,14 @@ const MAX_CELL_SIZE = 32;
 
 export function PatternStudio() {
   const t = useTranslations("PatternStudio");
+  const tExport = useTranslations("PatternExport");
   const [palette, setPalette] = useState<PaletteColor[]>([]);
   const [paletteError, setPaletteError] = useState("");
   const [targetWidth, setTargetWidth] = useState(52);
   const [targetHeight, setTargetHeight] = useState(52);
   const [imageAreaWidth, setImageAreaWidth] = useState(52);
   const [imageAreaHeight, setImageAreaHeight] = useState(52);
+  const [backgroundTag, setBackgroundTag] = useState("H1");
   const [fitMode, setFitMode] = useState<FitMode>("contain");
   const [samplingMode, setSamplingMode] = useState<SamplingMode>("smooth");
   const [colorMergeTolerance, setColorMergeTolerance] = useState(0);
@@ -144,11 +148,12 @@ export function PatternStudio() {
         targetHeight,
         imageAreaWidth,
         imageAreaHeight,
+        backgroundTag,
         fitMode,
         samplingMode,
         colorMergeTolerance,
       ].join("|"),
-    [colorMergeTolerance, fitMode, imageAreaHeight, imageAreaWidth, imageUrl, samplingMode, targetHeight, targetWidth]
+    [backgroundTag, colorMergeTolerance, fitMode, imageAreaHeight, imageAreaWidth, imageUrl, samplingMode, targetHeight, targetWidth]
   );
   const isPatternReadyForExport =
     Boolean(imageUrl) &&
@@ -244,6 +249,11 @@ export function PatternStudio() {
         if (parsed.targetHeight) setTargetHeight(parsed.targetHeight);
         if (parsed.imageAreaWidth) setImageAreaWidth(parsed.imageAreaWidth);
         if (parsed.imageAreaHeight) setImageAreaHeight(parsed.imageAreaHeight);
+        if (typeof parsed.backgroundTag === "string") {
+          setBackgroundTag(parsed.backgroundTag);
+        } else {
+          setBackgroundTag("H1");
+        }
         if (parsed.fitMode) setFitMode(parsed.fitMode);
         if (parsed.samplingMode) setSamplingMode(parsed.samplingMode);
         if (typeof parsed.colorMergeTolerance === "number") {
@@ -303,6 +313,7 @@ export function PatternStudio() {
       targetHeight,
       imageAreaWidth,
       imageAreaHeight,
+      backgroundTag,
       fitMode,
       samplingMode,
       colorMergeTolerance,
@@ -332,6 +343,7 @@ export function PatternStudio() {
     activeTab,
     cellSize,
     colorMergeTolerance,
+    backgroundTag,
     fitMode,
     imageAreaHeight,
     imageAreaWidth,
@@ -405,7 +417,7 @@ export function PatternStudio() {
             fitMode,
             samplingMode,
             colorMergeTolerance,
-            "H2"
+            backgroundTag
           );
 
           setPattern(nextPattern);
@@ -421,7 +433,7 @@ export function PatternStudio() {
     return () => {
       window.clearTimeout(handle);
     };
-  }, [colorMergeTolerance, currentPatternKey, fitMode, imageAreaHeight, imageAreaWidth, palette, samplingMode, sourceImage, targetHeight, targetWidth, t]);
+  }, [backgroundTag, colorMergeTolerance, currentPatternKey, fitMode, imageAreaHeight, imageAreaWidth, palette, samplingMode, sourceImage, targetHeight, targetWidth, t]);
 
   const drawCanvas = useEffectEvent(() => {
     if (!deferredPattern) {
@@ -832,6 +844,32 @@ export function PatternStudio() {
     downloadCanvas(exportCanvas, options.fileName);
   }
 
+  function downloadPatternChart() {
+    const exportPattern = pattern ?? deferredPattern;
+
+    if (!exportPattern) {
+      return;
+    }
+
+    const exportCanvas = document.createElement("canvas");
+    renderPatternExportToCanvas(exportCanvas, exportPattern, {
+      cellSize: derivePatternExportCellSize(exportPattern),
+      showCodes,
+      legendTitle: tExport("legendTitle"),
+      legendTotalLabel: tExport("legendTotalColors", {count: exportPattern.counts.length}),
+      beadUnit: tExport("beadUnit"),
+      title: imageTitle,
+      boardSizeLabel: tExport("boardSizeLabel"),
+      imageAreaSizeLabel: tExport("imageAreaSizeLabel"),
+      boardWidth: targetWidth,
+      boardHeight: targetHeight,
+      imageAreaWidth,
+      imageAreaHeight,
+    });
+
+    downloadCanvas(exportCanvas, buildExportFileName("chart"));
+  }
+
   function hydrateImage(
     dataUrl: string,
     restoredSummary?: string,
@@ -1179,6 +1217,19 @@ export function PatternStudio() {
                 </Field>
 
                 <Field orientation="responsive">
+                  <FieldLabel htmlFor="background-tag">{t("backgroundTagLabel")}</FieldLabel>
+                  <FieldContent>
+                    <Input
+                      id="background-tag"
+                      value={backgroundTag}
+                      placeholder="H1"
+                      onChange={(event) => setBackgroundTag(event.target.value.trim().toUpperCase())}
+                    />
+                    <FieldDescription>{t("backgroundTagHint")}</FieldDescription>
+                  </FieldContent>
+                </Field>
+
+                <Field orientation="responsive">
                   <FieldLabel>{t("fitLabel")}</FieldLabel>
                   <FieldContent>
                     <Select value={fitMode} onValueChange={(value) => setFitMode(value as FitMode)}>
@@ -1328,14 +1379,7 @@ export function PatternStudio() {
                     variant="secondary"
                     className="rounded-2xl sm:w-auto"
                     disabled={!deferredPattern}
-                    onClick={() =>
-                      downloadPatternImage({
-                        fileName: buildExportFileName("chart"),
-                        cellSize: planCellSize,
-                        showCodes,
-                        showGrid: true,
-                      })
-                    }
+                    onClick={downloadPatternChart}
                   >
                     <ArrowDownToLine data-icon="inline-start" />
                     {t("exportPlan")}

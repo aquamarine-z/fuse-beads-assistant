@@ -1,10 +1,43 @@
-import type { Metadata } from "next";
+import type {Metadata, Viewport} from "next";
+import {PwaRegister} from "@/components/pwa-register";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Fuse Beads Assistant",
   description: "Fuse bead pattern generator",
+  applicationName: "Fuse Beads Assistant",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      {url: "/icon.svg", type: "image/svg+xml"},
+    ],
+    shortcut: "/icon.svg",
+    apple: [
+      {url: "/apple-icon", sizes: "180x180", type: "image/png"},
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Fuse Beads Assistant",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "msapplication-TileColor": "#fff8f3",
+    "msapplication-config": "/browserconfig.xml",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#fff8f3",
+  colorScheme: "light dark",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -15,7 +48,7 @@ export default function RootLayout({
   return (
     <html
       lang="zh-CN"
-      data-accent="peach"
+      data-accent="blush"
       suppressHydrationWarning
       className="h-full antialiased"
     >
@@ -48,6 +81,7 @@ export default function RootLayout({
             })();`,
           }}
         />
+        <PwaRegister />
         <TooltipProvider>{children}</TooltipProvider>
       </body>
     </html>

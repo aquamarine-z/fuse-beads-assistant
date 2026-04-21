@@ -1,0 +1,55 @@
+<svg width="640" height="200" viewBox="0 0 640 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="200" rx="36" fill="#FFF8F3"/>
+  <rect x="12" y="12" width="616" height="176" rx="28" fill="#FFFFFF" stroke="#F3D9C8" stroke-width="4"/>
+
+  <g transform="translate(26 28)">
+    <rect x="36" y="0" width="10" height="18" fill="#6FA65A"/>
+    <rect x="46" y="0" width="12" height="18" fill="#84C86A"/>
+    <rect x="58" y="4" width="10" height="16" fill="#6FA65A"/>
+    <rect x="24" y="10" width="18" height="10" fill="#84C86A"/>
+    <rect x="58" y="10" width="18" height="10" fill="#84C86A"/>
+    <rect x="10" y="22" width="78" height="14" fill="#FF8796"/>
+    <rect x="6" y="36" width="86" height="16" fill="#FF6B7F"/>
+    <rect x="2" y="52" width="94" height="18" fill="#FF5B74"/>
+    <rect x="8" y="70" width="86" height="16" fill="#FF6B7F"/>
+    <rect x="18" y="86" width="66" height="12" fill="#FF8796"/>
+    <rect x="24" y="34" width="8" height="8" fill="#FFE07A"/>
+    <rect x="44" y="30" width="8" height="8" fill="#FFE07A"/>
+    <rect x="64" y="36" width="8" height="8" fill="#FFE07A"/>
+    <rect x="34" y="50" width="8" height="8" fill="#FFE07A"/>
+    <rect x="56" y="52" width="8" height="8" fill="#FFE07A"/>
+    <rect x="46" y="68" width="8" height="8" fill="#FFE07A"/>
+  </g>
+
+  <g transform="translate(128 30)">
+    <rect x="26" y="0" width="10" height="18" fill="#6FA65A"/>
+    <rect x="36" y="0" width="10" height="18" fill="#84C86A"/>
+    <rect x="4" y="26" width="54" height="14" fill="#FFD86B"/>
+    <rect x="0" y="40" width="62" height="18" fill="#FFC95A"/>
+    <rect x="0" y="58" width="62" height="18" fill="#FFBD3F"/>
+    <rect x="6" y="76" width="50" height="14" fill="#FFC95A"/>
+  </g>
+
+  <g transform="translate(196 28)">
+    <rect x="32" y="2" width="10" height="18" fill="#6FA65A"/>
+    <rect x="42" y="0" width="12" height="18" fill="#84C86A"/>
+    <rect x="18" y="18" width="46" height="14" fill="#C8EB91"/>
+    <rect x="10" y="32" width="62" height="18" fill="#B6E27B"/>
+    <rect x="6" y="50" width="70" height="24" fill="#A2D964"/>
+    <rect x="10" y="74" width="62" height="18" fill="#B6E27B"/>
+    <rect x="18" y="92" width="46" height="10" fill="#C8EB91"/>
+  </g>
+
+  <g transform="translate(300 40)">
+    <text x="0" y="30" fill="#503731" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24" font-weight="700" letter-spacing="2">PIXEL FRUIT</text>
+    <text x="0" y="74" fill="#ED6C7C" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="40" font-weight="800" letter-spacing="3">BEADS</text>
+    <text x="0" y="112" fill="#7C6A64" font-family="ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="600">sweet and simple pattern studio</text>
+
+    <g transform="translate(0 130)">
+      <rect x="0" y="0" width="18" height="18" rx="6" fill="#FF6B7F"/>
+      <rect x="28" y="0" width="18" height="18" rx="6" fill="#FFC95A"/>
+      <rect x="56" y="0" width="18" height="18" rx="6" fill="#B6E27B"/>
+      <rect x="84" y="0" width="18" height="18" rx="6" fill="#FFE07A"/>
+    </g>
+  </g>
+</svg>

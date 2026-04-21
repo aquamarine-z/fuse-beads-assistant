@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { TitlebarControls } from "@/components/titlebar-controls";
 import { Link } from "@/i18n/navigation";
 import {
+  derivePatternExportCellSize,
   generatePatternFromImage,
   parsePaletteCsv,
   type PaletteColor,
@@ -45,23 +46,7 @@ export function PatternExportViewer() {
   const [canvasDisplaySize, setCanvasDisplaySize] = useState({ width: 0, height: 0 });
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const exportCellSize = (() => {
-    if (!pattern) {
-      return 24;
-    }
-
-    const longestSide = Math.max(pattern.width, pattern.height);
-    const maxTagLength = pattern.cells.reduce(
-      (max, cell) => Math.max(max, cell.tag.length),
-      0
-    );
-    const bump = maxTagLength >= 3 ? 2 : 0;
-
-    if (longestSide <= 52) return 28 + bump;
-    if (longestSide <= 80) return 24 + bump;
-    if (longestSide <= 120) return 20 + bump;
-    return 16 + bump;
-  })();
+  const exportCellSize = derivePatternExportCellSize(pattern);
 
   useEffect(() => {
     let active = true;
@@ -104,7 +89,7 @@ export function PatternExportViewer() {
       try {
         const parsed = JSON.parse(saved) as Partial<PatternStudioPersistedState>;
 
-      if (
+        if (
           typeof parsed.targetWidth === "number" &&
           typeof parsed.targetHeight === "number" &&
           typeof parsed.imageAreaWidth === "number" &&
@@ -217,6 +202,7 @@ export function PatternExportViewer() {
       targetHeight: persistedState.targetHeight,
       imageAreaWidth: persistedState.imageAreaWidth,
       imageAreaHeight: persistedState.imageAreaHeight,
+      backgroundTag: persistedState.backgroundTag ?? "H1",
       fitMode: persistedState.fitMode,
       samplingMode: persistedState.samplingMode,
       colorMergeTolerance: persistedState.colorMergeTolerance,
@@ -316,7 +302,7 @@ export function PatternExportViewer() {
         persistedState.fitMode,
         persistedState.samplingMode,
         persistedState.colorMergeTolerance,
-        "H2"
+        persistedState.backgroundTag ?? "H1"
       );
 
       setPattern(nextPattern);
