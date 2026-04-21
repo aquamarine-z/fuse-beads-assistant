@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { ScanSearch, Upload } from "lucide-react";
 
 type ZoomableCanvasShellProps = {
@@ -196,14 +196,6 @@ export function ZoomableCanvasShell({
       pinchStateRef.current = null;
     }
   }
-
-  useEffect(() => {
-    if (!active || activePointersRef.current.size < 2 || !onPinchValueChange) {
-      return;
-    }
-
-    beginPinchGesture();
-  }, [active, onPinchValueChange, pinchValue]);
 
   return (
     <div className={outerClassName}>
