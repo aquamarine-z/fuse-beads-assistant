@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowDownToLine, ArrowLeft, Palette, ScanSearch } from "lucide-react";
+import { ArrowDownToLine, ArrowLeft, Palette } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { ZoomableCanvasShell } from "@/components/zoomable-canvas-shell";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { TitlebarControls } from "@/components/titlebar-controls";
@@ -43,15 +44,6 @@ export function PatternExportViewer() {
   const [viewerScale, setViewerScale] = useState(1);
   const [canvasDisplaySize, setCanvasDisplaySize] = useState({ width: 0, height: 0 });
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const pointerStateRef = useRef<{
-    pointerId: number;
-    startX: number;
-    startY: number;
-    scrollLeft: number;
-    scrollTop: number;
-    isDragging: boolean;
-  } | null>(null);
 
   const exportCellSize = (() => {
     if (!pattern) {
@@ -417,21 +409,6 @@ export function PatternExportViewer() {
     setViewerScale((current) => Math.max(0.45, Math.min(2.4, current + delta)));
   }
 
-  function stopPanning() {
-    const container = scrollContainerRef.current;
-    const pointerState = pointerStateRef.current;
-
-    if (container && pointerState) {
-      try {
-        container.releasePointerCapture(pointerState.pointerId);
-      } catch {
-        // Ignore browsers that do not support releasePointerCapture for this pointer.
-      }
-    }
-
-    pointerStateRef.current = null;
-  }
-
   function handleDownload() {
     if (!canvasRef.current) {
       return;
@@ -509,105 +486,41 @@ export function PatternExportViewer() {
 
         <div className="relative w-full min-w-0">
           {pattern ? (
-            <div className="relative w-full min-w-0 overflow-clip rounded-[2rem]">
-              {viewerModeActive ? (
-                <div className="pointer-events-none absolute left-1/2 top-3 z-20 hidden -translate-x-1/2 md:block">
-                  <div className="grid min-w-[22rem] max-w-[min(calc(100%-1rem),30rem)] grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-2 rounded-[1.5rem] border border-primary/18 bg-background/90 px-3.5 py-2 text-[11px] text-muted-foreground shadow-[0_8px_24px_rgba(15,23,42,0.12)] backdrop-blur-xl">
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <ScanSearch className="size-3.5" />
-                    </span>
-                    <span className="shrink-0 font-medium text-foreground">{t("viewerModeTitle")}</span>
-                    <span className="min-w-0 leading-4 break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
-                      {t("viewerModeDescription")}
-                    </span>
-                  </div>
-                </div>
-              ) : null}
-              <div className="relative w-full min-w-0 rounded-[2rem] border border-white/60 bg-white/68 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/6">
-                <div
-                  className={`pointer-events-none absolute inset-0 z-20 rounded-[2rem] border ${
-                    viewerModeActive ? "border-primary/55" : "border-white/60 dark:border-white/10"
-                  }`}
-                />
-                <div
-                  ref={scrollContainerRef}
-                  data-export-zoom-panel="true"
-                  className="pattern-scroll-panel relative z-0 max-h-[calc(100vh-15rem)] overflow-auto p-4 md:p-5"
+            <ZoomableCanvasShell
+              active={viewerModeActive}
+              panelId="export-viewer"
+              activeHintTitle={t("viewerModeTitle")}
+              activeHintDescription={t("viewerModeDescription")}
+              keepActiveDataAttr="data-export-zoom-keep"
+              panelDataAttr="data-export-zoom-panel"
+              outerClassName="relative w-full min-w-0"
+              clipClassName="relative w-full min-w-0 overflow-clip rounded-[2rem]"
+              surfaceClassName={`relative w-full min-w-0 rounded-[2rem] border border-white/60 bg-white/68 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-colors dark:border-white/10 dark:bg-white/6 ${
+                viewerModeActive ? "cursor-grab" : ""
+              }`}
+              scrollClassName="pattern-scroll-panel relative z-0 max-h-[calc(100vh-15rem)] overflow-auto p-4 md:p-5"
+              borderIdleClassName="border-white/60 dark:border-white/10"
+              borderActiveClassName="border-primary/55"
+              onActiveChange={setViewerModeActive}
+              onWheel={handleViewerWheelZoom}
+            >
+              <div
+                className="mx-auto flex min-h-[24rem] min-w-full w-max items-start justify-center pt-6"
+                style={{
+                  width: canvasDisplaySize.width ? `${canvasDisplaySize.width * viewerScale}px` : undefined,
+                  height: canvasDisplaySize.height ? `${canvasDisplaySize.height * viewerScale}px` : undefined,
+                }}
+              >
+                <canvas
+                  ref={canvasRef}
+                  className="block max-w-none rounded-[1.5rem] shadow-[0_12px_32px_rgba(15,23,42,0.12)]"
                   style={{
-                    touchAction: viewerModeActive ? "none" : "auto",
-                    userSelect: viewerModeActive ? "none" : "auto",
+                    width: canvasDisplaySize.width ? `${canvasDisplaySize.width * viewerScale}px` : undefined,
+                    height: canvasDisplaySize.height ? `${canvasDisplaySize.height * viewerScale}px` : undefined,
                   }}
-                  onClick={() => setViewerModeActive(true)}
-                  onPointerDown={(event) => {
-                    setViewerModeActive(true);
-
-                    if (event.pointerType === "mouse" && event.button !== 0) {
-                      return;
-                    }
-
-                    const container = scrollContainerRef.current;
-
-                    if (!container) {
-                      return;
-                    }
-
-                    pointerStateRef.current = {
-                      pointerId: event.pointerId,
-                      startX: event.clientX,
-                      startY: event.clientY,
-                      scrollLeft: container.scrollLeft,
-                      scrollTop: container.scrollTop,
-                      isDragging: false,
-                    };
-
-                    container.setPointerCapture(event.pointerId);
-                  }}
-                  onPointerMove={(event) => {
-                    const pointerState = pointerStateRef.current;
-                    const container = scrollContainerRef.current;
-
-                    if (!pointerState || !container || pointerState.pointerId !== event.pointerId) {
-                      return;
-                    }
-
-                    const deltaX = event.clientX - pointerState.startX;
-                    const deltaY = event.clientY - pointerState.startY;
-
-                    if (!pointerState.isDragging && Math.hypot(deltaX, deltaY) >= 4) {
-                      pointerState.isDragging = true;
-                    }
-
-                    if (!pointerState.isDragging || !viewerModeActive) {
-                      return;
-                    }
-
-                    event.preventDefault();
-                    container.scrollLeft = pointerState.scrollLeft - deltaX;
-                    container.scrollTop = pointerState.scrollTop - deltaY;
-                  }}
-                  onPointerUp={stopPanning}
-                  onPointerCancel={stopPanning}
-                  onWheel={handleViewerWheelZoom}
-                >
-                  <div
-                    className="mx-auto flex min-h-[24rem] min-w-full w-max items-start justify-center pt-6"
-                    style={{
-                      width: canvasDisplaySize.width ? `${canvasDisplaySize.width * viewerScale}px` : undefined,
-                      height: canvasDisplaySize.height ? `${canvasDisplaySize.height * viewerScale}px` : undefined,
-                    }}
-                  >
-                    <canvas
-                      ref={canvasRef}
-                      className="block max-w-none rounded-[1.5rem] shadow-[0_12px_32px_rgba(15,23,42,0.12)]"
-                      style={{
-                        width: canvasDisplaySize.width ? `${canvasDisplaySize.width * viewerScale}px` : undefined,
-                        height: canvasDisplaySize.height ? `${canvasDisplaySize.height * viewerScale}px` : undefined,
-                      }}
-                    />
-                  </div>
-                </div>
+                />
               </div>
-            </div>
+            </ZoomableCanvasShell>
           ) : (
             <div className="flex min-h-[24rem] items-center justify-center rounded-[2rem] border border-white/60 bg-white/68 p-4 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/6">
               <div className="mx-auto flex max-w-sm flex-col items-center gap-3 text-center">

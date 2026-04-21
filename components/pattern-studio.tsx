@@ -16,12 +16,11 @@ import {
   LayoutGrid,
   Palette,
   RefreshCw,
-  ScanSearch,
   Sparkles,
   SwatchBook,
-  Upload,
 } from "lucide-react";
 
+import { ZoomableCanvasShell } from "@/components/zoomable-canvas-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -1451,8 +1450,9 @@ export function PatternStudio() {
                   </TabsContent>
 
                   <TabsContent value="source" className="mt-0 min-h-0">
-                    <CanvasPanelShell
-                      isDragActive={isDragActive}
+                    <ZoomableCanvasShell
+                      active={false}
+                      dragActive={isDragActive}
                       dragTitle={t("dropImageTitle")}
                       dragDescription={t("dropImageDescription")}
                       scrollable
@@ -1476,7 +1476,7 @@ export function PatternStudio() {
                       ) : (
                         <EmptyPanel copy={t("sourceEmpty")} />
                       )}
-                    </CanvasPanelShell>
+                    </ZoomableCanvasShell>
                   </TabsContent>
                 </Tabs>
 
@@ -1622,20 +1622,24 @@ function CanvasPanel({
 }) {
   return (
     <div className="relative w-full min-w-0">
-      <CanvasPanelShell
+      <ZoomableCanvasShell
         panelId={panelId}
-        isDragActive={isDragActive}
-        isZoomActive={isZoomActive}
+        active={isZoomActive}
+        dragActive={isDragActive}
+        activeHintTitle={zoomTitle}
+        activeHintDescription={zoomDescription}
         dragTitle={dragTitle}
         dragDescription={dragDescription}
-        zoomTitle={zoomTitle}
-        zoomDescription={zoomDescription}
-        onActivateZoom={onActivateZoom}
+        onActiveChange={(active) => onActivateZoom(active ? panelId : null)}
         onDragStateChange={onDragStateChange}
         onDropImport={onDropImport}
-        onWheelZoom={onWheelZoom}
+        onWheel={onWheelZoom}
       >
-        <div className="mx-auto flex min-h-[14rem] min-w-full w-max items-center justify-center px-1.5 py-5 sm:min-h-[16rem] lg:min-h-[18rem]">
+        <div
+          className={`mx-auto flex min-h-[14rem] min-w-full w-max items-center justify-center pt-4 sm:min-h-[16rem] lg:min-h-[18rem] ${
+            isZoomActive ? "cursor-grab active:cursor-grabbing" : ""
+          }`}
+        >
           {hasContent ? (
             <div className="rounded-[1.45rem] bg-background/70 p-1.5 shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
               <canvas
@@ -1647,215 +1651,7 @@ function CanvasPanel({
             <EmptyPanel copy={emptyMessage} />
           )}
         </div>
-      </CanvasPanelShell>
-    </div>
-  );
-}
-
-function CanvasPanelShell({
-  children,
-  panelId,
-  isDragActive,
-  isZoomActive,
-  dragTitle,
-  dragDescription,
-  zoomTitle,
-  zoomDescription,
-  scrollable = false,
-  onActivateZoom,
-  onDragStateChange,
-  onDropImport,
-  onWheelZoom,
-}: {
-  children: React.ReactNode;
-  panelId?: "preview" | "plan" | "plan-colors";
-  isDragActive: boolean;
-  isZoomActive?: boolean;
-  dragTitle: string;
-  dragDescription: string;
-  zoomTitle?: string;
-  zoomDescription?: string;
-  scrollable?: boolean;
-  onActivateZoom?: (panel: "preview" | "plan" | "plan-colors" | null) => void;
-  onDragStateChange: (active: boolean) => void;
-  onDropImport: (event: React.DragEvent<HTMLDivElement>) => void;
-  onWheelZoom?: (event: React.WheelEvent<HTMLDivElement>) => void;
-}) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const pointerStateRef = useRef<{
-    pointerId: number;
-    startX: number;
-    startY: number;
-    scrollLeft: number;
-    scrollTop: number;
-    isDragging: boolean;
-  } | null>(null);
-
-  function stopPanning() {
-    const container = containerRef.current;
-    const pointerState = pointerStateRef.current;
-
-    if (container && pointerState) {
-      try {
-        container.releasePointerCapture(pointerState.pointerId);
-      } catch {
-        // Ignore browsers that do not support releasePointerCapture for this pointer.
-      }
-    }
-
-    pointerStateRef.current = null;
-  }
-
-  return (
-    <div className="relative w-full min-w-0 max-h-[22rem] sm:max-h-[26rem] lg:max-h-[30rem]">
-      <div className="relative w-full min-w-0 overflow-clip rounded-[1.75rem]">
-        {isZoomActive && !isDragActive && zoomTitle && zoomDescription ? (
-          <div className="pointer-events-none absolute left-1/2 top-3 z-20 hidden -translate-x-1/2 md:block">
-            <div className="grid min-w-[22rem] max-w-[min(calc(100%-1rem),30rem)] grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-2 rounded-[1.5rem] border border-primary/18 bg-background/90 px-3.5 py-2 text-[11px] text-muted-foreground shadow-[0_8px_24px_rgba(15,23,42,0.12)] backdrop-blur-xl">
-              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <ScanSearch className="size-3.5" />
-              </span>
-              <span className="shrink-0 font-medium text-foreground">{zoomTitle}</span>
-              <span className="min-w-0 leading-4 break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
-                {zoomDescription}
-              </span>
-            </div>
-          </div>
-        ) : null}
-
-        <div
-          className={`relative w-full min-w-0 rounded-[1.75rem] bg-background/80 transition-colors ${
-            isDragActive
-              ? "bg-primary/5"
-              : isZoomActive
-                ? "cursor-grab bg-primary/[0.045] shadow-[inset_0_0_0_1px_rgba(251,146,60,0.22)]"
-                : ""
-          }`}
-        >
-          <div
-            className={`pointer-events-none absolute inset-0 z-20 rounded-[1.75rem] border ${
-              isDragActive
-                ? "border-primary/70"
-                : isZoomActive
-                  ? "border-primary/55"
-                  : "border-border/70"
-            }`}
-          />
-
-          <div
-            ref={containerRef}
-            data-zoom-panel={panelId ? "true" : undefined}
-            data-zoom-panel-id={panelId}
-            className={`relative z-0 max-h-[22rem] p-4 sm:max-h-[26rem] lg:max-h-[30rem] ${
-              panelId || scrollable ? "pattern-scroll-panel overflow-auto" : "overflow-hidden"
-            }`}
-            style={{
-              touchAction: isZoomActive ? "none" : "auto",
-              userSelect: isZoomActive ? "none" : "auto",
-            }}
-            onClick={() => {
-              if (panelId && onActivateZoom) {
-                onActivateZoom(panelId);
-              }
-            }}
-            onPointerDown={(event) => {
-              if (panelId && onActivateZoom) {
-                onActivateZoom(panelId);
-              }
-
-              if (!panelId) {
-                return;
-              }
-
-              if (event.pointerType === "mouse" && event.button !== 0) {
-                return;
-              }
-
-              const container = containerRef.current;
-
-              if (!container) {
-                return;
-              }
-
-              pointerStateRef.current = {
-                pointerId: event.pointerId,
-                startX: event.clientX,
-                startY: event.clientY,
-                scrollLeft: container.scrollLeft,
-                scrollTop: container.scrollTop,
-                isDragging: false,
-              };
-
-              container.setPointerCapture(event.pointerId);
-            }}
-            onPointerMove={(event) => {
-              const pointerState = pointerStateRef.current;
-              const container = containerRef.current;
-
-              if (!pointerState || !container || pointerState.pointerId !== event.pointerId) {
-                return;
-              }
-
-              const deltaX = event.clientX - pointerState.startX;
-              const deltaY = event.clientY - pointerState.startY;
-
-              if (!pointerState.isDragging && Math.hypot(deltaX, deltaY) >= 4) {
-                pointerState.isDragging = true;
-              }
-
-              if (!pointerState.isDragging) {
-                return;
-              }
-
-              event.preventDefault();
-              container.scrollLeft = pointerState.scrollLeft - deltaX;
-              container.scrollTop = pointerState.scrollTop - deltaY;
-            }}
-            onPointerUp={stopPanning}
-            onPointerCancel={stopPanning}
-            onDragEnter={(event) => {
-              event.preventDefault();
-              onDragStateChange(true);
-            }}
-            onDragOver={(event) => {
-              event.preventDefault();
-              event.dataTransfer.dropEffect = "copy";
-              onDragStateChange(true);
-            }}
-            onDragLeave={(event) => {
-              event.preventDefault();
-
-              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-                onDragStateChange(false);
-              }
-            }}
-            onDrop={onDropImport}
-            onWheel={onWheelZoom}
-          >
-            {isDragActive ? (
-              <div className="pointer-events-none absolute inset-4 z-10 flex items-center justify-center rounded-[1.35rem] border border-dashed border-primary/60 bg-background/88 backdrop-blur-sm">
-                <div className="flex max-w-sm flex-col items-center gap-3 text-center">
-                  <div className="flex size-14 items-center justify-center rounded-[1.5rem] bg-primary/12 text-primary shadow-sm">
-                    <Upload className="size-6" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-foreground">{dragTitle}</p>
-                    <p className="text-sm leading-6 text-muted-foreground">{dragDescription}</p>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            <div
-              className={`mx-auto flex min-h-[14rem] min-w-full w-max items-center justify-center pt-4 sm:min-h-[16rem] lg:min-h-[18rem] ${
-                isZoomActive ? "cursor-grab active:cursor-grabbing" : ""
-              }`}
-            >
-              {children}
-            </div>
-          </div>
-        </div>
-      </div>
+      </ZoomableCanvasShell>
     </div>
   );
 }
