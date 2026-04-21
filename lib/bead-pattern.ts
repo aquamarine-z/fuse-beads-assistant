@@ -396,14 +396,14 @@ function drawLegendSection(
     const badgeTextWidth = context.measureText(legendTotalLabel).width;
     const badgeWidth = Math.ceil(badgeTextWidth + badgePaddingX * 2);
 
-    context.fillStyle = "rgba(255, 247, 237, 0.96)";
-    context.strokeStyle = "rgba(251, 146, 60, 0.24)";
+    context.fillStyle = "rgba(248, 250, 252, 0.96)";
+    context.strokeStyle = "rgba(148, 163, 184, 0.28)";
     context.lineWidth = 1;
     roundRect(context, badgeX, badgeY, badgeWidth, badgeHeight, 999);
     context.fill();
     context.stroke();
 
-    context.fillStyle = "rgba(194, 65, 12, 0.92)";
+    context.fillStyle = "rgba(51, 65, 85, 0.92)";
     context.textAlign = "left";
     context.textBaseline = "middle";
     context.fillText(legendTotalLabel, badgeX + badgePaddingX, legendY + titleHeight / 2);

@@ -884,6 +884,9 @@ export function PatternStudio() {
       setPattern(null);
       setPatternKey("");
       setProcessingError("");
+      if (!isRestoring) {
+        setImageTitle("");
+      }
       setSourceSummary(summary);
       setTargetWidth(nextBoardWidth);
       setTargetHeight(nextBoardHeight);
