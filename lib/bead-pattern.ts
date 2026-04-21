@@ -421,7 +421,7 @@ export function generatePatternFromImage(
   imageWidth: number,
   imageHeight: number,
   fitMode: FitMode,
-  samplingMode: SamplingMode = "precise",
+  samplingMode: SamplingMode = "smooth",
   colorMergeTolerance = 0,
   backgroundTag = "H2"
 ): PatternResult {
