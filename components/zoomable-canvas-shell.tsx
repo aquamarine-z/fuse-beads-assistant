@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ScanSearch, Upload } from "lucide-react";
 
 type ZoomableCanvasShellProps = {
@@ -83,6 +83,10 @@ export function ZoomableCanvasShell({
   const pinchStateRef = useRef<{
     initialDistance: number;
     initialValue: number;
+    initialScrollLeft: number;
+    initialScrollTop: number;
+    contentX: number;
+    contentY: number;
   } | null>(null);
 
   const computedSurfaceClassName = surfaceClassName ?? `relative w-full min-w-0 rounded-[1.75rem] transition-colors ${
@@ -110,8 +114,9 @@ export function ZoomableCanvasShell({
 
   function updatePinchValue(scaleRatio: number) {
     const pinchState = pinchStateRef.current;
+    const container = containerRef.current;
 
-    if (!pinchState || !onPinchValueChange) {
+    if (!pinchState || !onPinchValueChange || !container) {
       return;
     }
 
@@ -121,7 +126,28 @@ export function ZoomableCanvasShell({
       ? Math.round(clampedValue / pinchStep) * pinchStep
       : clampedValue;
 
-    onPinchValueChange(Number(nextValue.toFixed(4)));
+    const normalizedNextValue = Number(nextValue.toFixed(4));
+    const nextScaleRatio =
+      pinchState.initialValue > 0 ? normalizedNextValue / pinchState.initialValue : 1;
+
+    onPinchValueChange(normalizedNextValue);
+
+    requestAnimationFrame(() => {
+      const latestContainer = containerRef.current;
+
+      if (!latestContainer) {
+        return;
+      }
+
+      latestContainer.scrollLeft =
+        pinchState.initialScrollLeft +
+        pinchState.contentX * nextScaleRatio -
+        pinchState.contentX;
+      latestContainer.scrollTop =
+        pinchState.initialScrollTop +
+        pinchState.contentY * nextScaleRatio -
+        pinchState.contentY;
+    });
   }
 
   function beginPinchGesture() {
@@ -131,12 +157,23 @@ export function ZoomableCanvasShell({
 
     const [firstPointer, secondPointer] = Array.from(activePointersRef.current.values());
 
+    const centerX = (firstPointer.x + secondPointer.x) / 2;
+    const centerY = (firstPointer.y + secondPointer.y) / 2;
+    const container = containerRef.current;
+    const containerRect = container?.getBoundingClientRect();
+    const scrollLeft = container?.scrollLeft ?? 0;
+    const scrollTop = container?.scrollTop ?? 0;
+
     pinchStateRef.current = {
       initialDistance: Math.hypot(
         secondPointer.x - firstPointer.x,
         secondPointer.y - firstPointer.y
       ),
       initialValue: pinchValue ?? pinchMin,
+      initialScrollLeft: scrollLeft,
+      initialScrollTop: scrollTop,
+      contentX: centerX - (containerRect?.left ?? 0) + scrollLeft,
+      contentY: centerY - (containerRect?.top ?? 0) + scrollTop,
     };
 
     pointerStateRef.current = null;
@@ -159,6 +196,14 @@ export function ZoomableCanvasShell({
       pinchStateRef.current = null;
     }
   }
+
+  useEffect(() => {
+    if (!active || activePointersRef.current.size < 2 || !onPinchValueChange) {
+      return;
+    }
+
+    beginPinchGesture();
+  }, [active, onPinchValueChange, pinchValue]);
 
   return (
     <div className={outerClassName}>
