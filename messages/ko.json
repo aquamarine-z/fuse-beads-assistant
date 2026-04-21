@@ -160,6 +160,7 @@
     "generationError": "대형 내보내기 생성에 실패했습니다. 도안 생성기로 돌아가 다시 시도해 주세요.",
     "paletteLoadError": "팔레트 파일을 불러오지 못했습니다. public/Mard221.csv 를 확인해 주세요.",
     "legendTitle": "색상 및 비즈 수 요약",
+    "legendTotalColors": "총 {count}색",
     "beadUnit": "개"
   }
 }

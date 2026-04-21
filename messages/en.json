@@ -160,6 +160,7 @@
     "generationError": "Failed to generate the large export. Please return to the pattern generator and try again.",
     "paletteLoadError": "Failed to load the palette file. Please make sure public/Mard221.csv is available.",
     "legendTitle": "Color and bead summary",
+    "legendTotalColors": "{count} colors",
     "beadUnit": "beads"
   }
 }

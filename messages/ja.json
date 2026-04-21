@@ -160,6 +160,7 @@
     "generationError": "大きな書き出しの生成に失敗しました。図案ジェネレーターに戻って再試行してください。",
     "paletteLoadError": "パレットファイルの読み込みに失敗しました。public/Mard221.csv を確認してください。",
     "legendTitle": "色と粒数の集計",
+    "legendTotalColors": "全 {count} 色",
     "beadUnit": "粒"
   }
 }

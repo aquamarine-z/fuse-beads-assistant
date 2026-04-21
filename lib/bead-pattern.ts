@@ -188,6 +188,7 @@ export function renderPatternExportToCanvas(
     cellSize: number;
     showCodes: boolean;
     legendTitle: string;
+    legendTotalLabel?: string;
     beadUnit: string;
     title: string;
     boardSizeLabel: string;
@@ -202,6 +203,7 @@ export function renderPatternExportToCanvas(
     cellSize,
     showCodes,
     legendTitle,
+    legendTotalLabel,
     beadUnit,
     title,
     boardSizeLabel,
@@ -293,6 +295,7 @@ export function renderPatternExportToCanvas(
   drawLegendSection(context, pattern, {
     legendY: padding + headerHeight + chartWithAxesHeight + padding,
     legendTitle,
+    legendTotalLabel,
     beadUnit,
     padding,
     titleHeight,
@@ -352,6 +355,7 @@ function drawLegendSection(
   options: {
     legendY: number;
     legendTitle: string;
+    legendTotalLabel?: string;
     beadUnit: string;
     padding: number;
     titleHeight: number;
@@ -364,6 +368,7 @@ function drawLegendSection(
   const {
     legendY,
     legendTitle,
+    legendTotalLabel,
     beadUnit,
     padding,
     titleHeight,
@@ -379,6 +384,30 @@ function drawLegendSection(
   context.textAlign = "left";
   context.textBaseline = "middle";
   context.fillText(legendTitle, legendX, legendY + titleHeight / 2);
+
+  if (legendTotalLabel) {
+    const titleWidth = context.measureText(legendTitle).width;
+    const badgeX = legendX + titleWidth + 12;
+    const badgeY = legendY + titleHeight / 2 - 14;
+    const badgeHeight = 28;
+    const badgePaddingX = 12;
+
+    context.font = "600 12px ui-sans-serif, system-ui, sans-serif";
+    const badgeTextWidth = context.measureText(legendTotalLabel).width;
+    const badgeWidth = Math.ceil(badgeTextWidth + badgePaddingX * 2);
+
+    context.fillStyle = "rgba(255, 247, 237, 0.96)";
+    context.strokeStyle = "rgba(251, 146, 60, 0.24)";
+    context.lineWidth = 1;
+    roundRect(context, badgeX, badgeY, badgeWidth, badgeHeight, 999);
+    context.fill();
+    context.stroke();
+
+    context.fillStyle = "rgba(194, 65, 12, 0.92)";
+    context.textAlign = "left";
+    context.textBaseline = "middle";
+    context.fillText(legendTotalLabel, badgeX + badgePaddingX, legendY + titleHeight / 2);
+  }
 
   pattern.counts.forEach(({ color, count }, index) => {
     const column = index % columns;

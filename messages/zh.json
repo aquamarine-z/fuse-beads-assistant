@@ -160,6 +160,7 @@
     "generationError": "大图导出生成失败，请返回图纸生成器后重试。",
     "paletteLoadError": "颜色表加载失败，请确认 public/Mard221.csv 可访问。",
     "legendTitle": "颜色与颗粒汇总",
+    "legendTotalColors": "共 {count} 色",
     "beadUnit": "粒"
   }
 }

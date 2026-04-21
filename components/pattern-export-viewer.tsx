@@ -338,6 +338,7 @@ export function PatternExportViewer() {
       cellSize: exportCellSize,
       showCodes,
       legendTitle: t("legendTitle"),
+      legendTotalLabel: t("legendTotalColors", { count: pattern.counts.length }),
       beadUnit: t("beadUnit"),
       title: imageTitle,
       boardSizeLabel: t("boardSizeLabel"),
