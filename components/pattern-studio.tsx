@@ -1365,6 +1365,8 @@ export function PatternStudio() {
                     <CanvasPanel
                       panelId="preview"
                       canvasRef={previewCanvasRef}
+                      cellSize={cellSize}
+                      onPinchCellSizeChange={setCellSize}
                       hasContent={Boolean(deferredPattern)}
                       emptyMessage={t("previewEmpty")}
                       pending={isPending}
@@ -1385,6 +1387,8 @@ export function PatternStudio() {
                     <CanvasPanel
                       panelId="plan"
                       canvasRef={planCanvasRef}
+                      cellSize={cellSize}
+                      onPinchCellSizeChange={setCellSize}
                       hasContent={Boolean(deferredPattern)}
                       emptyMessage={t("planEmpty")}
                       pending={isPending}
@@ -1406,6 +1410,8 @@ export function PatternStudio() {
                       <CanvasPanel
                         panelId="plan-colors"
                         canvasRef={planWithColorsCanvasRef}
+                        cellSize={cellSize}
+                        onPinchCellSizeChange={setCellSize}
                         hasContent={Boolean(deferredPattern)}
                         emptyMessage={t("planColorsEmpty")}
                         pending={isPending}
@@ -1462,23 +1468,25 @@ export function PatternStudio() {
                       onDragStateChange={setIsDragActive}
                       onDropImport={handleDropImport}
                     >
-                      {imageUrl ? (
-                        <div className="flex w-full max-w-4xl flex-col items-center gap-4">
-                          <div className="flex flex-col items-center gap-1 text-center">
-                            <p className="text-lg font-semibold">
-                              {imageTitle || t("untitledImage")}
-                            </p>
-                            <p className="text-sm text-muted-foreground">{sourceSummary}</p>
+                      <div className="mx-auto flex min-h-[14rem] min-w-full w-max items-start justify-center pt-4 sm:min-h-[16rem] lg:min-h-[18rem]">
+                        {imageUrl ? (
+                          <div className="flex w-full max-w-4xl flex-col items-center gap-4">
+                            <div className="flex flex-col items-center gap-1 text-center">
+                              <p className="text-lg font-semibold">
+                                {imageTitle || t("untitledImage")}
+                              </p>
+                              <p className="text-sm text-muted-foreground">{sourceSummary}</p>
+                            </div>
+                            <img
+                              src={imageUrl}
+                              alt="source preview"
+                              className="max-h-[18rem] max-w-full rounded-[1.5rem] object-contain shadow-lg sm:max-h-[22rem] lg:max-h-[26rem]"
+                            />
                           </div>
-                          <img
-                            src={imageUrl}
-                            alt="source preview"
-                            className="max-h-[18rem] max-w-full rounded-[1.5rem] object-contain shadow-lg sm:max-h-[22rem] lg:max-h-[26rem]"
-                          />
-                        </div>
-                      ) : (
-                        <EmptyPanel copy={t("sourceEmpty")} />
-                      )}
+                        ) : (
+                          <EmptyPanel copy={t("sourceEmpty")} />
+                        )}
+                      </div>
                     </ZoomableCanvasShell>
                   </TabsContent>
                 </Tabs>
@@ -1593,6 +1601,8 @@ export function PatternStudio() {
 function CanvasPanel({
   panelId,
   canvasRef,
+  cellSize,
+  onPinchCellSizeChange,
   hasContent,
   emptyMessage,
   pending,
@@ -1609,6 +1619,8 @@ function CanvasPanel({
 }: {
   panelId: "preview" | "plan" | "plan-colors";
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  cellSize: number;
+  onPinchCellSizeChange: React.Dispatch<React.SetStateAction<number>>;
   hasContent: boolean;
   emptyMessage: string;
   pending: boolean;
@@ -1633,7 +1645,12 @@ function CanvasPanel({
         activeHintDescription={zoomDescription}
         dragTitle={dragTitle}
         dragDescription={dragDescription}
+        pinchValue={cellSize}
+        pinchMin={MIN_CELL_SIZE}
+        pinchMax={MAX_CELL_SIZE}
+        pinchStep={1}
         onActiveChange={(active) => onActivateZoom(active ? panelId : null)}
+        onPinchValueChange={(nextValue) => onPinchCellSizeChange(Math.round(nextValue))}
         onDragStateChange={onDragStateChange}
         onDropImport={onDropImport}
         onWheel={onWheelZoom}

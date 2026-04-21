@@ -25,10 +25,15 @@ type ZoomableCanvasShellProps = {
   dragDescription?: string;
   keepActiveDataAttr?: string;
   panelDataAttr?: string;
+  pinchValue?: number;
+  pinchMin?: number;
+  pinchMax?: number;
+  pinchStep?: number;
   onActiveChange?: (active: boolean) => void;
   onDragStateChange?: (active: boolean) => void;
   onDropImport?: (event: React.DragEvent<HTMLDivElement>) => void;
   onWheel?: (event: React.WheelEvent<HTMLDivElement>) => void;
+  onPinchValueChange?: (nextValue: number) => void;
 };
 
 export function ZoomableCanvasShell({
@@ -53,12 +58,20 @@ export function ZoomableCanvasShell({
   dragDescription,
   keepActiveDataAttr,
   panelDataAttr = "data-zoom-panel",
+  pinchValue,
+  pinchMin = 0,
+  pinchMax = Number.POSITIVE_INFINITY,
+  pinchStep,
   onActiveChange,
   onDragStateChange,
   onDropImport,
   onWheel,
+  onPinchValueChange,
 }: ZoomableCanvasShellProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const activePointersRef = useRef(
+    new Map<number, { x: number; y: number }>()
+  );
   const pointerStateRef = useRef<{
     pointerId: number;
     startX: number;
@@ -66,6 +79,10 @@ export function ZoomableCanvasShell({
     scrollLeft: number;
     scrollTop: number;
     isDragging: boolean;
+  } | null>(null);
+  const pinchStateRef = useRef<{
+    initialDistance: number;
+    initialValue: number;
   } | null>(null);
 
   const computedSurfaceClassName = surfaceClassName ?? `relative w-full min-w-0 rounded-[1.75rem] transition-colors ${
@@ -89,6 +106,58 @@ export function ZoomableCanvasShell({
     }
 
     pointerStateRef.current = null;
+  }
+
+  function updatePinchValue(scaleRatio: number) {
+    const pinchState = pinchStateRef.current;
+
+    if (!pinchState || !onPinchValueChange) {
+      return;
+    }
+
+    const rawNextValue = pinchState.initialValue * scaleRatio;
+    const clampedValue = Math.min(pinchMax, Math.max(pinchMin, rawNextValue));
+    const nextValue = pinchStep
+      ? Math.round(clampedValue / pinchStep) * pinchStep
+      : clampedValue;
+
+    onPinchValueChange(Number(nextValue.toFixed(4)));
+  }
+
+  function beginPinchGesture() {
+    if (!onPinchValueChange || activePointersRef.current.size < 2) {
+      return;
+    }
+
+    const [firstPointer, secondPointer] = Array.from(activePointersRef.current.values());
+
+    pinchStateRef.current = {
+      initialDistance: Math.hypot(
+        secondPointer.x - firstPointer.x,
+        secondPointer.y - firstPointer.y
+      ),
+      initialValue: pinchValue ?? pinchMin,
+    };
+
+    pointerStateRef.current = null;
+  }
+
+  function clearPointer(pointerId: number) {
+    const container = containerRef.current;
+
+    if (container) {
+      try {
+        container.releasePointerCapture(pointerId);
+      } catch {
+        // Ignore browsers that do not support releasePointerCapture for this pointer.
+      }
+    }
+
+    activePointersRef.current.delete(pointerId);
+
+    if (activePointersRef.current.size < 2) {
+      pinchStateRef.current = null;
+    }
   }
 
   return (
@@ -168,6 +237,11 @@ export function ZoomableCanvasShell({
                 return;
               }
 
+              activePointersRef.current.set(event.pointerId, {
+                x: event.clientX,
+                y: event.clientY,
+              });
+
               pointerStateRef.current = {
                 pointerId: event.pointerId,
                 startX: event.clientX,
@@ -178,8 +252,39 @@ export function ZoomableCanvasShell({
               };
 
               container.setPointerCapture(event.pointerId);
+
+              if (active && activePointersRef.current.size >= 2) {
+                beginPinchGesture();
+              }
             }}
             onPointerMove={(event) => {
+              if (activePointersRef.current.has(event.pointerId)) {
+                activePointersRef.current.set(event.pointerId, {
+                  x: event.clientX,
+                  y: event.clientY,
+                });
+              }
+
+              if (
+                active &&
+                pinchStateRef.current &&
+                activePointersRef.current.size >= 2 &&
+                onPinchValueChange
+              ) {
+                const [firstPointer, secondPointer] = Array.from(activePointersRef.current.values());
+                const distance = Math.hypot(
+                  secondPointer.x - firstPointer.x,
+                  secondPointer.y - firstPointer.y
+                );
+
+                if (pinchStateRef.current.initialDistance > 0) {
+                  event.preventDefault();
+                  updatePinchValue(distance / pinchStateRef.current.initialDistance);
+                }
+
+                return;
+              }
+
               const pointerState = pointerStateRef.current;
               const container = containerRef.current;
 
@@ -202,8 +307,14 @@ export function ZoomableCanvasShell({
               container.scrollLeft = pointerState.scrollLeft - deltaX;
               container.scrollTop = pointerState.scrollTop - deltaY;
             }}
-            onPointerUp={stopPanning}
-            onPointerCancel={stopPanning}
+            onPointerUp={(event) => {
+              stopPanning();
+              clearPointer(event.pointerId);
+            }}
+            onPointerCancel={(event) => {
+              stopPanning();
+              clearPointer(event.pointerId);
+            }}
             onWheel={onWheel}
           >
             {dragActive && dragTitle && dragDescription ? (

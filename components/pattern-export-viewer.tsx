@@ -502,7 +502,11 @@ export function PatternExportViewer() {
               scrollClassName="pattern-scroll-panel relative z-0 max-h-[calc(100vh-15rem)] overflow-auto p-4 md:p-5"
               borderIdleClassName="border-white/60 dark:border-white/10"
               borderActiveClassName="border-primary/55"
+              pinchValue={viewerScale}
+              pinchMin={0.45}
+              pinchMax={2.4}
               onActiveChange={setViewerModeActive}
+              onPinchValueChange={setViewerScale}
               onWheel={handleViewerWheelZoom}
             >
               <div
