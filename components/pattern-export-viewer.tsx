@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowDownToLine, ArrowLeft, Palette } from "lucide-react";
+import { ArrowDownToLine, ArrowLeft, Palette, ScanSearch } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -39,7 +39,19 @@ export function PatternExportViewer() {
   const [sourceImage, setSourceImage] = useState<HTMLImageElement | null>(null);
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(true);
+  const [viewerModeActive, setViewerModeActive] = useState(false);
+  const [viewerScale, setViewerScale] = useState(1);
+  const [canvasDisplaySize, setCanvasDisplaySize] = useState({ width: 0, height: 0 });
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const pointerStateRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    scrollLeft: number;
+    scrollTop: number;
+    isDragging: boolean;
+  } | null>(null);
 
   const exportCellSize = (() => {
     if (!pattern) {
@@ -343,7 +355,82 @@ export function PatternExportViewer() {
       imageAreaWidth,
       imageAreaHeight,
     });
+
+    setCanvasDisplaySize({
+      width: canvasRef.current.width,
+      height: canvasRef.current.height,
+    });
   }, [exportCellSize, imageAreaHeight, imageAreaWidth, imageTitle, pattern, showCodes, t, targetHeight, targetWidth]);
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+
+      if (!(target instanceof HTMLElement)) {
+        setViewerModeActive(false);
+        return;
+      }
+
+      if (target.closest("[data-export-zoom-keep='true']")) {
+        return;
+      }
+
+      if (!target.closest("[data-export-zoom-panel='true']")) {
+        setViewerModeActive(false);
+      }
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!viewerModeActive) {
+      return;
+    }
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, [viewerModeActive]);
+
+  function handleViewerWheelZoom(event: React.WheelEvent<HTMLDivElement>) {
+    if (!viewerModeActive) {
+      return;
+    }
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+
+    const delta = event.ctrlKey ? -event.deltaY * 0.0015 : -event.deltaY * 0.0008;
+    setViewerScale((current) => Math.max(0.45, Math.min(2.4, current + delta)));
+  }
+
+  function stopPanning() {
+    const container = scrollContainerRef.current;
+    const pointerState = pointerStateRef.current;
+
+    if (container && pointerState) {
+      try {
+        container.releasePointerCapture(pointerState.pointerId);
+      } catch {
+        // Ignore browsers that do not support releasePointerCapture for this pointer.
+      }
+    }
+
+    pointerStateRef.current = null;
+  }
 
   function handleDownload() {
     if (!canvasRef.current) {
@@ -360,7 +447,7 @@ export function PatternExportViewer() {
     <main className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none fixed inset-0 -z-20 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.9),transparent_40%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.65),transparent_30%),linear-gradient(180deg,var(--background),color-mix(in_oklab,var(--background),var(--primary)_8%))]" />
       <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(circle_at_20%_20%,color-mix(in_oklab,var(--primary),transparent_68%),transparent_35%),radial-gradient(circle_at_80%_0%,color-mix(in_oklab,var(--chart-2),transparent_65%),transparent_30%)] blur-3xl" />
-      <section className="mx-auto flex w-full max-w-[min(100%,1800px)] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <section className="mx-auto flex w-full max-w-[min(100%,1900px)] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         <div className="flex items-center justify-between gap-4">
           <Link
             href="/pattern"
@@ -372,25 +459,35 @@ export function PatternExportViewer() {
           <TitlebarControls />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[2rem] border border-white/60 bg-white/70 p-5 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">{t("eyebrow")}</p>
-            <h1 className="font-heading text-3xl font-semibold tracking-tight md:text-5xl">
-              {t("title")}
-            </h1>
-            <p className="max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
-              {t("description")}
-            </p>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/65 bg-white/72 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/8">
+              <span>{t("eyebrow")}</span>
+            </div>
+            <div className="space-y-2">
+              <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground/92 md:text-5xl">
+                {t("title")}
+              </h1>
+              <p className="max-w-3xl text-sm leading-7 text-muted-foreground md:text-base">
+                {t("description")}
+              </p>
+            </div>
             {(imageTitle || sourceSummary) ? (
-              <div className="space-y-1">
-                <p className="text-base font-medium">{imageTitle || t("untitledImage")}</p>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                <span className="font-medium text-foreground">
+                  {imageTitle || t("untitledImage")}
+                </span>
                 {sourceSummary ? (
-                  <p className="text-sm text-muted-foreground">{sourceSummary}</p>
+                  <span className="text-muted-foreground">{sourceSummary}</span>
                 ) : null}
               </div>
             ) : null}
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+
+          <div
+            data-export-zoom-keep="true"
+            className="flex flex-wrap items-center justify-start gap-2 rounded-[1.75rem] border border-white/60 bg-white/66 p-2 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/6"
+          >
             <label className="flex items-center gap-2 rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-sm">
               <Switch checked={showCodes} onCheckedChange={setShowCodes} />
               <span>{t("showCodesToggle")}</span>
@@ -410,14 +507,109 @@ export function PatternExportViewer() {
           </div>
         </div>
 
-        <div className="overflow-auto rounded-[2rem] border border-white/60 bg-white/70 p-4 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+        <div className="relative w-full min-w-0">
           {pattern ? (
-            <canvas
-              ref={canvasRef}
-              className="block max-w-none rounded-[1.5rem] shadow-[0_12px_32px_rgba(15,23,42,0.12)]"
-            />
+            <div className="relative w-full min-w-0 overflow-clip rounded-[2rem]">
+              {viewerModeActive ? (
+                <div className="pointer-events-none absolute left-1/2 top-3 z-20 hidden -translate-x-1/2 md:block">
+                  <div className="grid min-w-[22rem] max-w-[min(calc(100%-1rem),30rem)] grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-2 rounded-[1.5rem] border border-primary/18 bg-background/90 px-3.5 py-2 text-[11px] text-muted-foreground shadow-[0_8px_24px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <ScanSearch className="size-3.5" />
+                    </span>
+                    <span className="shrink-0 font-medium text-foreground">{t("viewerModeTitle")}</span>
+                    <span className="min-w-0 leading-4 break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] overflow-hidden">
+                      {t("viewerModeDescription")}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+              <div className="relative w-full min-w-0 rounded-[2rem] border border-white/60 bg-white/68 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/6">
+                <div
+                  className={`pointer-events-none absolute inset-0 z-20 rounded-[2rem] border ${
+                    viewerModeActive ? "border-primary/55" : "border-white/60 dark:border-white/10"
+                  }`}
+                />
+                <div
+                  ref={scrollContainerRef}
+                  data-export-zoom-panel="true"
+                  className="pattern-scroll-panel relative z-0 max-h-[calc(100vh-15rem)] overflow-auto p-4 md:p-5"
+                  style={{
+                    touchAction: viewerModeActive ? "none" : "auto",
+                    userSelect: viewerModeActive ? "none" : "auto",
+                  }}
+                  onClick={() => setViewerModeActive(true)}
+                  onPointerDown={(event) => {
+                    setViewerModeActive(true);
+
+                    if (event.pointerType === "mouse" && event.button !== 0) {
+                      return;
+                    }
+
+                    const container = scrollContainerRef.current;
+
+                    if (!container) {
+                      return;
+                    }
+
+                    pointerStateRef.current = {
+                      pointerId: event.pointerId,
+                      startX: event.clientX,
+                      startY: event.clientY,
+                      scrollLeft: container.scrollLeft,
+                      scrollTop: container.scrollTop,
+                      isDragging: false,
+                    };
+
+                    container.setPointerCapture(event.pointerId);
+                  }}
+                  onPointerMove={(event) => {
+                    const pointerState = pointerStateRef.current;
+                    const container = scrollContainerRef.current;
+
+                    if (!pointerState || !container || pointerState.pointerId !== event.pointerId) {
+                      return;
+                    }
+
+                    const deltaX = event.clientX - pointerState.startX;
+                    const deltaY = event.clientY - pointerState.startY;
+
+                    if (!pointerState.isDragging && Math.hypot(deltaX, deltaY) >= 4) {
+                      pointerState.isDragging = true;
+                    }
+
+                    if (!pointerState.isDragging || !viewerModeActive) {
+                      return;
+                    }
+
+                    event.preventDefault();
+                    container.scrollLeft = pointerState.scrollLeft - deltaX;
+                    container.scrollTop = pointerState.scrollTop - deltaY;
+                  }}
+                  onPointerUp={stopPanning}
+                  onPointerCancel={stopPanning}
+                  onWheel={handleViewerWheelZoom}
+                >
+                  <div
+                    className="mx-auto flex min-h-[24rem] min-w-full w-max items-start justify-center pt-6"
+                    style={{
+                      width: canvasDisplaySize.width ? `${canvasDisplaySize.width * viewerScale}px` : undefined,
+                      height: canvasDisplaySize.height ? `${canvasDisplaySize.height * viewerScale}px` : undefined,
+                    }}
+                  >
+                    <canvas
+                      ref={canvasRef}
+                      className="block max-w-none rounded-[1.5rem] shadow-[0_12px_32px_rgba(15,23,42,0.12)]"
+                      style={{
+                        width: canvasDisplaySize.width ? `${canvasDisplaySize.width * viewerScale}px` : undefined,
+                        height: canvasDisplaySize.height ? `${canvasDisplaySize.height * viewerScale}px` : undefined,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : (
-            <div className="flex min-h-[24rem] items-center justify-center rounded-[1.5rem] border border-border/70 bg-background/80 p-4">
+            <div className="flex min-h-[24rem] items-center justify-center rounded-[2rem] border border-white/60 bg-white/68 p-4 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/6">
               <div className="mx-auto flex max-w-sm flex-col items-center gap-3 text-center">
                 <div className="flex size-14 items-center justify-center rounded-[1.5rem] bg-secondary text-primary">
                   <Palette className="size-6" />
