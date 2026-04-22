@@ -12,22 +12,18 @@ export function PwaRegister() {
       return;
     }
 
-    let activeRegistration: ServiceWorkerRegistration | null = null;
+    const disableOfflineSupport = async () => {
+      const registrations = await navigator.serviceWorker.getRegistrations();
 
-    const registerServiceWorker = async () => {
-      activeRegistration = await navigator.serviceWorker.register("/sw.js", {scope: "/"});
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+
+      if ("caches" in window) {
+        const cacheKeys = await caches.keys();
+        await Promise.all(cacheKeys.map((cacheKey) => caches.delete(cacheKey)));
+      }
     };
 
-    const handleOnline = () => {
-      void activeRegistration?.update();
-    };
-
-    void registerServiceWorker();
-    window.addEventListener("online", handleOnline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-    };
+    void disableOfflineSupport();
   }, []);
 
   return null;
