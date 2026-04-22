@@ -12,7 +12,22 @@ export function PwaRegister() {
       return;
     }
 
-    void navigator.serviceWorker.register("/sw.js", {scope: "/"});
+    let activeRegistration: ServiceWorkerRegistration | null = null;
+
+    const registerServiceWorker = async () => {
+      activeRegistration = await navigator.serviceWorker.register("/sw.js", {scope: "/"});
+    };
+
+    const handleOnline = () => {
+      void activeRegistration?.update();
+    };
+
+    void registerServiceWorker();
+    window.addEventListener("online", handleOnline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
   }, []);
 
   return null;

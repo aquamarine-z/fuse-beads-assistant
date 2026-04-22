@@ -166,5 +166,25 @@
     "legendTitle": "Color and bead summary",
     "legendTotalColors": "{count} colors",
     "beadUnit": "beads"
+  },
+  "PwaStatus": {
+    "readyLabel": "Offline cache ready",
+    "readyDescription": "This workspace can reopen without a connection after the first successful load.",
+    "offlineLabel": "Offline mode",
+    "offlineDescription": "Cached pages, palette data, and your saved image data are still available here.",
+    "refresh": "Retry"
+  },
+  "OfflinePage": {
+    "badge": "Offline fallback",
+    "title": "You are offline, but the cached workspace is still available",
+    "description": "If this device opened the app successfully before, you can continue working from the cached pages. Reconnect once if you need a page or asset that has never been loaded before.",
+    "primary": "Open pattern studio",
+    "secondary": "Back to home",
+    "paletteTitle": "Palette stays available",
+    "paletteBody": "The Mard 221 palette file is cached, so pattern generation can keep working after the first successful load.",
+    "imageTitle": "Saved images can still load",
+    "imageBody": "Images already stored in this browser tab flow or IndexedDB remain available while the browser keeps the site data.",
+    "tipsTitle": "Reconnect for fresh assets",
+    "tipsBody": "If you have never opened a certain route or the browser cleared its storage, reconnect once to refresh the offline cache."
   }
 }

@@ -3,6 +3,7 @@ import {hasLocale, NextIntlClientProvider} from "next-intl";
 import {getMessages, getTranslations, setRequestLocale} from "next-intl/server";
 import {notFound} from "next/navigation";
 
+import {PwaStatusPill} from "@/components/pwa-status-pill";
 import {routing} from "@/i18n/routing";
 
 export function generateStaticParams() {
@@ -45,5 +46,10 @@ export default async function LocaleLayout({
 
   const messages = await getMessages();
 
-  return <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>;
+  return (
+    <NextIntlClientProvider messages={messages}>
+      <PwaStatusPill />
+      {children}
+    </NextIntlClientProvider>
+  );
 }

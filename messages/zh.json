@@ -166,5 +166,25 @@
     "legendTitle": "颜色与颗粒汇总",
     "legendTotalColors": "共 {count} 色",
     "beadUnit": "粒"
+  },
+  "PwaStatus": {
+    "readyLabel": "离线缓存已就绪",
+    "readyDescription": "首次成功加载后，这个工作台断网也可以再次打开使用。",
+    "offlineLabel": "当前处于离线模式",
+    "offlineDescription": "已缓存的页面、调色板和已保存图片数据仍可继续使用。",
+    "refresh": "重试"
+  },
+  "OfflinePage": {
+    "badge": "离线兜底页",
+    "title": "当前离线，但已缓存的工作台仍然可以继续打开",
+    "description": "如果这台设备之前成功打开过应用，你现在仍可继续使用已缓存页面。若某个页面或资源从未加载过，则需要先重新联网一次。",
+    "primary": "打开图纸工作台",
+    "secondary": "返回首页",
+    "paletteTitle": "调色板可继续使用",
+    "paletteBody": "Mard 221 色卡文件会被缓存，因此首次成功加载后，离线仍能继续生成图纸。",
+    "imageTitle": "已保存图片仍可读取",
+    "imageBody": "当前标签页流程里保存过的图片，以及 IndexedDB 中的图片，只要浏览器未清理站点数据就还能继续使用。",
+    "tipsTitle": "新资源仍需联网一次",
+    "tipsBody": "如果某个路由从未打开过，或浏览器已经清除了缓存与存储数据，就需要重新联网一次来刷新离线缓存。"
   }
 }
