@@ -409,13 +409,13 @@ export function PatternExportViewer() {
 
   return (
     <main className="relative min-h-screen overflow-hidden">
-      <div className="pointer-events-none fixed inset-0 -z-20 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.9),transparent_40%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.65),transparent_30%),linear-gradient(180deg,var(--background),color-mix(in_oklab,var(--background),var(--primary)_8%))]" />
-      <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(circle_at_20%_20%,color-mix(in_oklab,var(--primary),transparent_68%),transparent_35%),radial-gradient(circle_at_80%_0%,color-mix(in_oklab,var(--chart-2),transparent_65%),transparent_30%)] blur-3xl" />
+      <div className="pointer-events-none fixed inset-0 -z-20 bg-[radial-gradient(circle_at_top_left,var(--bg-glow-1),transparent_40%),radial-gradient(circle_at_top_right,var(--bg-glow-2),transparent_30%),linear-gradient(180deg,var(--background),color-mix(in_oklab,var(--background),var(--primary)_8%))]" />
+      <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(circle_at_20%_20%,var(--bg-glow-3),transparent_35%),radial-gradient(circle_at_80%_0%,var(--bg-glow-4),transparent_30%)] blur-3xl" />
       <section className="mx-auto flex w-full max-w-[min(100%,1900px)] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         <div className="flex items-center justify-between gap-4">
           <Link
             href="/pattern"
-            className={buttonVariants({ variant: "outline", className: "rounded-2xl" })}
+            className={buttonVariants({ variant: "outline", className: "rounded-lg" })}
           >
             <ArrowLeft data-icon="inline-start" />
             {t("back")}
@@ -425,7 +425,7 @@ export function PatternExportViewer() {
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/65 bg-white/72 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
               <span>{t("eyebrow")}</span>
             </div>
             <div className="space-y-2">
@@ -450,21 +450,21 @@ export function PatternExportViewer() {
 
           <div
             data-export-zoom-keep="true"
-            className="flex flex-wrap items-center justify-start gap-2 rounded-[1.75rem] border border-white/60 bg-white/66 p-2 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/6"
+            className="flex flex-wrap items-center justify-start gap-2 rounded-lg border border-border bg-card p-2 shadow-sm"
           >
-            <label className="flex items-center gap-2 rounded-2xl border border-border/70 bg-background/80 px-3 py-2 text-sm">
+            <label className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm">
               <Switch checked={showCodes} onCheckedChange={setShowCodes} />
               <span>{t("showCodesToggle")}</span>
             </label>
             <Button
               variant="outline"
-              className="rounded-2xl"
+              className="rounded-lg"
               disabled={!imageUrl}
               onClick={() => window.open(imageUrl, "_blank", "noopener,noreferrer")}
             >
               {t("openSource")}
             </Button>
-            <Button className="rounded-2xl" disabled={!pattern} onClick={handleDownload}>
+            <Button className="rounded-lg" disabled={!pattern} onClick={handleDownload}>
               <ArrowDownToLine data-icon="inline-start" />
               {t("download")}
             </Button>
@@ -481,12 +481,12 @@ export function PatternExportViewer() {
               keepActiveDataAttr="data-export-zoom-keep"
               panelDataAttr="data-export-zoom-panel"
               outerClassName="relative w-full min-w-0"
-              clipClassName="relative w-full min-w-0 overflow-clip rounded-[2rem]"
-              surfaceClassName={`relative w-full min-w-0 rounded-[2rem] border border-white/60 bg-white/68 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-colors dark:border-white/10 dark:bg-white/6 ${
+              clipClassName="relative w-full min-w-0 overflow-clip rounded-xl"
+              surfaceClassName={`relative w-full min-w-0 rounded-xl border border-border bg-card shadow-sm transition-colors ${
                 viewerModeActive ? "cursor-grab" : ""
               }`}
               scrollClassName="pattern-scroll-panel relative z-0 max-h-[calc(100vh-15rem)] overflow-auto p-4 md:p-5"
-              borderIdleClassName="border-white/60 dark:border-white/10"
+              borderIdleClassName="border-border"
               borderActiveClassName="border-primary/55"
               pinchValue={viewerScale}
               pinchMin={0.45}
@@ -504,7 +504,7 @@ export function PatternExportViewer() {
               >
                 <canvas
                   ref={canvasRef}
-                  className="block max-w-none rounded-[1.5rem] shadow-[0_12px_32px_rgba(15,23,42,0.12)]"
+                  className="block max-w-none rounded-lg shadow-sm border border-border/30"
                   style={{
                     width: canvasDisplaySize.width ? `${canvasDisplaySize.width * viewerScale}px` : undefined,
                     height: canvasDisplaySize.height ? `${canvasDisplaySize.height * viewerScale}px` : undefined,
@@ -513,9 +513,9 @@ export function PatternExportViewer() {
               </div>
             </ZoomableCanvasShell>
           ) : (
-            <div className="flex min-h-[24rem] items-center justify-center rounded-[2rem] border border-white/60 bg-white/68 p-4 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/6">
+            <div className="flex min-h-[24rem] items-center justify-center rounded-xl border border-border bg-card p-4 shadow-sm">
               <div className="mx-auto flex max-w-sm flex-col items-center gap-3 text-center">
-                <div className="flex size-14 items-center justify-center rounded-[1.5rem] bg-secondary text-primary">
+                <div className="flex size-14 items-center justify-center rounded-lg bg-secondary text-primary">
                   <Palette className="size-6" />
                 </div>
                 <p className="text-sm leading-7 text-muted-foreground">

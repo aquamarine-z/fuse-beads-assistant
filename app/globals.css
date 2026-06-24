@@ -84,6 +84,13 @@
   --sidebar-accent-foreground: var(--accent-foreground);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
+
+  /* M3 Expressive Background Glows & Gradients */
+  --bg-gradient-top: color-mix(in oklab, var(--background) 92%, white);
+  --bg-glow-1: rgba(255, 255, 255, 0.9);
+  --bg-glow-2: rgba(255, 255, 255, 0.65);
+  --bg-glow-3: color-mix(in oklab, var(--primary) 68%, transparent);
+  --bg-glow-4: color-mix(in oklab, var(--chart-2) 65%, transparent);
 }
 
 html[data-accent="peach"] {
@@ -126,31 +133,79 @@ html[data-accent="sage"] {
   --chart-2: oklch(0.82 0.08 105);
 }
 
+.dark[data-accent="peach"] {
+  --primary: oklch(0.82 0.11 40);
+  --chart-2: oklch(0.89 0.07 165);
+}
+
+.dark[data-accent="teal"] {
+  --primary: oklch(0.79 0.09 200);
+  --chart-2: oklch(0.85 0.08 170);
+}
+
+.dark[data-accent="violet"] {
+  --primary: oklch(0.78 0.11 310);
+  --chart-2: oklch(0.87 0.08 260);
+}
+
+.dark[data-accent="amber"] {
+  --primary: oklch(0.85 0.11 82);
+  --chart-2: oklch(0.90 0.07 155);
+}
+
+.dark[data-accent="rose"] {
+  --primary: oklch(0.80 0.12 15);
+  --chart-2: oklch(0.88 0.08 30);
+}
+
+.dark[data-accent="blush"] {
+  --primary: oklch(0.83 0.11 355);
+  --chart-2: oklch(0.90 0.07 335);
+}
+
+.dark[data-accent="mint"] {
+  --primary: oklch(0.84 0.09 170);
+  --chart-2: oklch(0.89 0.08 198);
+}
+
+.dark[data-accent="sage"] {
+  --primary: oklch(0.78 0.07 140);
+  --chart-2: oklch(0.86 0.06 110);
+}
+
 .dark {
-  --background: oklch(0.19 0.018 300);
-  --foreground: oklch(0.965 0.01 28);
-  --card: oklch(0.245 0.018 300);
-  --card-foreground: oklch(0.965 0.01 28);
-  --popover: oklch(0.24 0.018 300);
-  --popover-foreground: oklch(0.965 0.01 28);
-  --secondary: oklch(0.29 0.018 300);
-  --secondary-foreground: oklch(0.94 0.01 28);
-  --muted: oklch(0.28 0.016 300);
-  --muted-foreground: oklch(0.94 0.01 28);
-  --accent: color-mix(in oklab, var(--primary) 24%, oklch(0.24 0.018 300));
-  --accent-foreground: oklch(0.965 0.01 28);
-  --destructive: oklch(0.72 0.18 22);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 13%);
-  --ring: color-mix(in oklab, var(--primary) 72%, white);
-  --sidebar: oklch(0.22 0.018 300);
-  --sidebar-foreground: oklch(0.965 0.01 28);
+  --background: color-mix(in oklab, var(--primary) 6%, oklch(0.12 0.006 30));
+  --foreground: oklch(0.95 0.005 30);
+  --primary-foreground: oklch(0.15 0.01 30);
+  --card: color-mix(in oklab, var(--primary) 10%, oklch(0.16 0.008 30));
+  --card-foreground: oklch(0.95 0.005 30);
+  --popover: color-mix(in oklab, var(--primary) 12%, oklch(0.14 0.008 30));
+  --popover-foreground: oklch(0.95 0.005 30);
+  --secondary: color-mix(in oklab, var(--primary) 15%, oklch(0.20 0.01 30));
+  --secondary-foreground: oklch(0.92 0.005 30);
+  --muted: color-mix(in oklab, var(--primary) 8%, oklch(0.18 0.008 30));
+  --muted-foreground: oklch(0.72 0.015 30);
+  --accent: color-mix(in oklab, var(--primary) 22%, oklch(0.22 0.01 30));
+  --accent-foreground: oklch(0.96 0.005 30);
+  --destructive: oklch(0.65 0.20 22);
+  --border: color-mix(in oklab, var(--primary) 14%, oklch(0.28 0.012 30));
+  --input: color-mix(in oklab, var(--primary) 18%, oklch(0.32 0.012 30));
+  --ring: var(--primary);
+  --sidebar: color-mix(in oklab, var(--primary) 8%, oklch(0.14 0.008 30));
+  --sidebar-foreground: oklch(0.95 0.005 30);
   --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: oklch(0.985 0.006 30);
+  --sidebar-primary-foreground: oklch(0.12 0.006 30);
   --sidebar-accent: var(--accent);
   --sidebar-accent-foreground: var(--accent-foreground);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
+
+  /* M3 Expressive Background Glows & Gradients (Dark Mode) */
+  --bg-gradient-top: color-mix(in oklab, var(--background) 95%, black);
+  --bg-glow-1: rgba(15, 23, 42, 0.15);
+  --bg-glow-2: rgba(15, 23, 42, 0.08);
+  --bg-glow-3: color-mix(in oklab, var(--primary) 12%, transparent);
+  --bg-glow-4: color-mix(in oklab, var(--chart-2) 10%, transparent);
 }
 
 @layer base {
@@ -165,7 +220,7 @@ html[data-accent="sage"] {
     background-image:
       radial-gradient(circle at top left, color-mix(in oklab, var(--primary) 12%, transparent), transparent 30%),
       radial-gradient(circle at top right, color-mix(in oklab, var(--chart-2) 18%, transparent), transparent 28%),
-      linear-gradient(180deg, color-mix(in oklab, var(--background) 92%, white), var(--background));
+      linear-gradient(180deg, var(--bg-gradient-top), var(--background));
   }
   html {
     @apply font-sans;

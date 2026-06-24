@@ -942,22 +942,22 @@ export function PatternStudio() {
 
   return (
     <main className="relative min-h-screen overflow-hidden">
-      <div className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.9),transparent_40%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.65),transparent_30%),linear-gradient(180deg,var(--background),color-mix(in_oklab,var(--background),var(--primary)_8%))]" />
-      <div className="absolute inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(circle_at_20%_20%,color-mix(in_oklab,var(--primary),transparent_68%),transparent_35%),radial-gradient(circle_at_80%_0%,color-mix(in_oklab,var(--chart-2),transparent_65%),transparent_30%)] blur-3xl" />
+      <div className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_top_left,var(--bg-glow-1),transparent_40%),radial-gradient(circle_at_top_right,var(--bg-glow-2),transparent_30%),linear-gradient(180deg,var(--background),color-mix(in_oklab,var(--background),var(--primary)_8%))]" />
+      <div className="absolute inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(circle_at_20%_20%,var(--bg-glow-3),transparent_35%),radial-gradient(circle_at_80%_0%,var(--bg-glow-4),transparent_30%)] blur-3xl" />
 
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <Link
             href="/"
-            className={buttonVariants({ variant: "outline", className: "w-full rounded-2xl sm:w-auto" })}
+            className={buttonVariants({ variant: "outline", className: "w-full rounded-lg sm:w-auto" })}
           >
             {t("eyebrow")}
           </Link>
           <TitlebarControls />
         </div>
-        <header className="grid gap-5 rounded-[2rem] border border-white/60 bg-white/70 p-4 shadow-[0_30px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5 sm:p-5 md:gap-6 md:p-7">
+        <header className="grid gap-5 rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5 md:gap-6 md:p-7">
           <div className="flex flex-col gap-5">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-sm text-muted-foreground shadow-sm dark:border-white/10 dark:bg-white/5">
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-sm text-muted-foreground shadow-sm">
               <Sparkles className="size-4 text-primary" />
               {t("eyebrow")}
             </div>
@@ -984,7 +984,7 @@ export function PatternStudio() {
         </header>
 
         <div className="grid items-start gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-          <Card className="min-w-0 rounded-[2rem] border-white/60 bg-white/70 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+          <Card className="min-w-0 rounded-xl border border-border bg-card shadow-sm">
             <CardHeader className="gap-2">
               <CardTitle className="flex items-center gap-2 text-2xl">
                 <ImagePlus className="text-primary" />
@@ -993,7 +993,7 @@ export function PatternStudio() {
               <CardDescription>{t("settingsDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
-              <div className="relative overflow-hidden rounded-[1.75rem] border border-dashed border-border/80 bg-background/80 p-4">
+              <div className="relative overflow-hidden rounded-lg border border-dashed border-border/80 bg-muted/30 p-4">
                 <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
                 <div className="flex flex-col gap-4">
                   <div className="flex items-start justify-between gap-3">
@@ -1015,7 +1015,7 @@ export function PatternStudio() {
                     />
                     <Button
                       size="lg"
-                      className="w-full rounded-2xl"
+                      className="w-full rounded-lg"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       {imageUrl ? (
@@ -1084,7 +1084,7 @@ export function PatternStudio() {
                         <ToggleGroupItem
                           key={preset.value}
                           value={preset.value}
-                          className="rounded-2xl"
+                          className="rounded-lg"
                         >
                           {preset.value}
                         </ToggleGroupItem>
@@ -1306,13 +1306,13 @@ export function PatternStudio() {
               <Separator />
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-[1.5rem] bg-secondary/80 p-4">
+                <div className="rounded-lg bg-secondary/60 p-4">
                   <p className="text-sm text-muted-foreground">{t("totalBeads")}</p>
                   <p className="mt-1 text-3xl font-semibold">
                     {deferredPattern ? deferredPattern.width * deferredPattern.height : "--"}
                   </p>
                 </div>
-                <div className="rounded-[1.5rem] bg-secondary/80 p-4">
+                <div className="rounded-lg bg-secondary/60 p-4">
                   <p className="text-sm text-muted-foreground">{t("colorCount")}</p>
                   <p className="mt-1 text-3xl font-semibold">
                     {deferredPattern?.counts.length ?? "--"}
@@ -1321,7 +1321,7 @@ export function PatternStudio() {
               </div>
 
               {(paletteError || processingError) && (
-                <div className="rounded-[1.5rem] border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                   {paletteError || processingError}
                 </div>
               )}
@@ -1329,7 +1329,7 @@ export function PatternStudio() {
           </Card>
 
           <div className="min-w-0 flex flex-col gap-6">
-            <Card className="min-w-0 rounded-[2rem] border-white/60 bg-white/70 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+            <Card className="min-w-0 rounded-xl border border-border bg-card shadow-sm">
               <CardHeader className="gap-3 md:flex-row md:items-end md:justify-between">
                 <div className="space-y-2">
                   <CardTitle className="flex items-center gap-2 text-2xl">
@@ -1340,7 +1340,7 @@ export function PatternStudio() {
                 </div>
                 <div className="grid w-full grid-cols-1 gap-3 sm:flex sm:w-auto sm:flex-wrap">
                   <Button
-                    className="rounded-2xl"
+                    className="rounded-lg"
                     disabled={!isPatternReadyForExport}
                     onClick={() => {
                       const studioId = studioIdRef.current;
@@ -1361,7 +1361,7 @@ export function PatternStudio() {
                   </Button>
                   <Button
                     variant="secondary"
-                    className="rounded-2xl sm:w-auto"
+                    className="rounded-lg sm:w-auto"
                     disabled={!deferredPattern}
                     onClick={() =>
                       downloadPatternImage({
@@ -1377,7 +1377,7 @@ export function PatternStudio() {
                   </Button>
                   <Button
                     variant="secondary"
-                    className="rounded-2xl sm:w-auto"
+                    className="rounded-lg sm:w-auto"
                     disabled={!deferredPattern}
                     onClick={downloadPatternChart}
                   >
@@ -1389,17 +1389,17 @@ export function PatternStudio() {
               <CardContent>
                 <Tabs value={activeTab} onValueChange={handleWorkspaceTabChange} className="flex flex-col gap-4">
                   <div className="-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden tabs-strip-scroll sm:mx-0 sm:overflow-visible sm:px-0 sm:pb-0">
-                    <TabsList data-zoom-keep="true" className="flex !h-auto w-max min-w-full flex-nowrap items-stretch gap-1 rounded-2xl border border-border/70 bg-secondary/90 p-[3px] shadow-inner dark:bg-white/10 sm:grid sm:w-full sm:grid-cols-4 sm:overflow-visible">
-                      <TabsTrigger value="preview" className="!h-auto min-h-[2.5rem] min-w-[5.5rem] flex-none self-auto rounded-xl px-2 py-1.5 text-xs leading-snug whitespace-normal break-words data-active:bg-background sm:min-h-[2.375rem] sm:min-w-0 sm:w-full sm:flex-1 sm:text-sm">
+                    <TabsList data-zoom-keep="true" className="flex !h-auto w-max min-w-full flex-nowrap items-stretch gap-1 rounded-xl border border-border bg-muted p-[3px] shadow-sm sm:grid sm:w-full sm:grid-cols-4 sm:overflow-visible">
+                      <TabsTrigger value="preview" className="!h-auto min-h-[2.5rem] min-w-[5.5rem] flex-none self-auto rounded-lg px-2 py-1.5 text-xs leading-snug whitespace-normal break-words data-active:bg-background sm:min-h-[2.375rem] sm:min-w-0 sm:w-full sm:flex-1 sm:text-sm">
                         {t("tabPreview")}
                       </TabsTrigger>
-                      <TabsTrigger value="plan" className="!h-auto min-h-[2.5rem] min-w-[5.5rem] flex-none self-auto rounded-xl px-2 py-1.5 text-xs leading-snug whitespace-normal break-words data-active:bg-background sm:min-h-[2.375rem] sm:min-w-0 sm:w-full sm:flex-1 sm:text-sm">
+                      <TabsTrigger value="plan" className="!h-auto min-h-[2.5rem] min-w-[5.5rem] flex-none self-auto rounded-lg px-2 py-1.5 text-xs leading-snug whitespace-normal break-words data-active:bg-background sm:min-h-[2.375rem] sm:min-w-0 sm:w-full sm:flex-1 sm:text-sm">
                         {t("tabPlan")}
                       </TabsTrigger>
-                      <TabsTrigger value="plan-colors" className="!h-auto min-h-[2.5rem] min-w-[6.75rem] flex-none self-auto rounded-xl px-2 py-1.5 text-xs leading-snug whitespace-normal break-words data-active:bg-background sm:min-h-[2.375rem] sm:min-w-0 sm:w-full sm:flex-1 sm:text-sm">
+                      <TabsTrigger value="plan-colors" className="!h-auto min-h-[2.5rem] min-w-[6.75rem] flex-none self-auto rounded-lg px-2 py-1.5 text-xs leading-snug whitespace-normal break-words data-active:bg-background sm:min-h-[2.375rem] sm:min-w-0 sm:w-full sm:flex-1 sm:text-sm">
                         {t("tabPlanColors")}
                       </TabsTrigger>
-                      <TabsTrigger value="source" className="!h-auto min-h-[2.5rem] min-w-[5.5rem] flex-none self-auto rounded-xl px-2 py-1.5 text-xs leading-snug whitespace-normal break-words data-active:bg-background sm:min-h-[2.375rem] sm:min-w-0 sm:w-full sm:flex-1 sm:text-sm">
+                      <TabsTrigger value="source" className="!h-auto min-h-[2.5rem] min-w-[5.5rem] flex-none self-auto rounded-lg px-2 py-1.5 text-xs leading-snug whitespace-normal break-words data-active:bg-background sm:min-h-[2.375rem] sm:min-w-0 sm:w-full sm:flex-1 sm:text-sm">
                         {t("tabSource")}
                       </TabsTrigger>
                     </TabsList>
@@ -1470,7 +1470,7 @@ export function PatternStudio() {
                         onDropImport={handleDropImport}
                         onWheelZoom={handleCanvasWheelZoom}
                       />
-                      <div className="grid gap-4 rounded-[1.75rem] border border-border/70 bg-background/80 p-4">
+                      <div className="grid gap-4 rounded-lg border border-border bg-muted/30 p-4">
                         <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                           <span>{t("planColorsLegend")}</span>
                           <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-[11px]">
@@ -1524,7 +1524,7 @@ export function PatternStudio() {
                             <img
                               src={imageUrl}
                               alt="source preview"
-                              className="max-h-[18rem] max-w-full rounded-[1.5rem] object-contain shadow-lg sm:max-h-[22rem] lg:max-h-[26rem]"
+                              className="max-h-[18rem] max-w-full rounded-lg object-contain shadow-lg sm:max-h-[22rem] lg:max-h-[26rem]"
                             />
                           </div>
                         ) : (
@@ -1536,7 +1536,7 @@ export function PatternStudio() {
                 </Tabs>
 
                 {activeTab !== "source" ? (
-                  <div className="mt-4 rounded-[1.75rem] border border-border/70 bg-background/80 p-4">
+                  <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4">
                     <Field>
                       <FieldLabel>{t("zoomLabel")}</FieldLabel>
                       <FieldContent>
@@ -1560,7 +1560,7 @@ export function PatternStudio() {
             </Card>
 
             <div className="grid items-start gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-              <Card className="min-w-0 rounded-[2rem] border-white/60 bg-white/70 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+              <Card className="min-w-0 rounded-xl border border-border bg-card shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-xl">
                     <SwatchBook className="text-primary" />
@@ -1576,11 +1576,11 @@ export function PatternStudio() {
                     allColors.map(({ color, count }) => (
                       <div
                         key={color.tag}
-                        className="flex items-center justify-between rounded-[1.35rem] border border-border/70 bg-background/80 px-4 py-3"
+                        className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3"
                       >
                         <div className="flex items-center gap-3">
                           <span
-                            className="size-10 rounded-2xl border border-white/70 shadow-sm"
+                            className="size-10 rounded-lg border border-border shadow-sm"
                             style={{ backgroundColor: color.hex }}
                           />
                           <div className="space-y-1">
@@ -1597,7 +1597,7 @@ export function PatternStudio() {
                 </CardContent>
               </Card>
 
-              <Card className="min-w-0 rounded-[2rem] border-white/60 bg-white/70 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+              <Card className="min-w-0 rounded-xl border border-border bg-card shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-xl">
                     <Droplets className="text-primary" />
@@ -1606,25 +1606,25 @@ export function PatternStudio() {
                   <CardDescription>{t("guideDesc")}</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4">
-                  <div className="rounded-[1.5rem] bg-secondary/80 p-4">
+                  <div className="rounded-lg bg-secondary/60 p-4">
                     <p className="text-sm text-muted-foreground">{t("outputSize")}</p>
                     <p className="mt-2 text-2xl font-semibold">
                       {targetWidth} x {targetHeight}
                     </p>
                   </div>
-                  <div className="rounded-[1.5rem] bg-secondary/80 p-4">
+                  <div className="rounded-lg bg-secondary/60 p-4">
                     <p className="text-sm text-muted-foreground">{t("imageAreaTitle")}</p>
                     <p className="mt-2 text-2xl font-semibold">
                       {imageAreaWidth} x {imageAreaHeight}
                     </p>
                   </div>
-                  <div className="rounded-[1.5rem] bg-secondary/80 p-4">
+                  <div className="rounded-lg bg-secondary/60 p-4">
                     <p className="text-sm text-muted-foreground">{t("fitModeTitle")}</p>
                     <p className="mt-2 text-base font-medium">
                       {t(`fit${FIT_MODES.find((item) => item.value === fitMode)?.key ?? "Contain"}`)}
                     </p>
                   </div>
-                  <div className="rounded-[1.5rem] bg-secondary/80 p-4">
+                  <div className="rounded-lg bg-secondary/60 p-4">
                     <p className="text-sm text-muted-foreground">{t("samplingModeTitle")}</p>
                     <p className="mt-2 text-base font-medium">
                       {t(
@@ -1705,10 +1705,10 @@ function CanvasPanel({
           }`}
         >
           {hasContent ? (
-            <div className="rounded-[1.45rem] bg-background/70 p-1.5 shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
+            <div className="rounded-lg bg-card p-1.5 border border-border shadow-sm">
               <canvas
                 ref={canvasRef}
-                className={`${pending ? "opacity-60" : "opacity-100"} block rounded-[1.2rem] transition-opacity`}
+                className={`${pending ? "opacity-60" : "opacity-100"} block rounded-md transition-opacity`}
               />
             </div>
           ) : (
@@ -1723,7 +1723,7 @@ function CanvasPanel({
 function EmptyPanel({ copy }: { copy: string }) {
   return (
     <div className="mx-auto flex max-w-sm flex-col items-center gap-3 text-center">
-      <div className="flex size-14 items-center justify-center rounded-[1.5rem] bg-secondary text-primary">
+      <div className="flex size-14 items-center justify-center rounded-lg bg-secondary text-primary">
         <Palette className="size-6" />
       </div>
       <p className="text-sm leading-7 text-muted-foreground">{copy}</p>

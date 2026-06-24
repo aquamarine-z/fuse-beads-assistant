@@ -35,7 +35,7 @@ export default async function LocalizedHome({
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/pattern"
-                className={buttonVariants({size: "lg", className: "rounded-2xl"})}
+                className={buttonVariants({size: "lg", className: "rounded-lg"})}
               >
                 {t("primary")}
               </Link>
@@ -44,7 +44,7 @@ export default async function LocalizedHome({
                 className={buttonVariants({
                   variant: "outline",
                   size: "lg",
-                  className: "rounded-2xl",
+                  className: "rounded-lg",
                 })}
               >
                 {t("secondary")}
@@ -90,7 +90,7 @@ function InfoCard({
   body: string;
 }) {
   return (
-    <Card className="rounded-[2rem] border-white/60 bg-white/70 shadow-[0_24px_64px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+    <Card className="rounded-xl border border-border bg-card shadow-sm transition-shadow duration-200 hover:shadow-md">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl">{icon}{title}</CardTitle>
         <CardDescription className="text-sm leading-7">{body}</CardDescription>
@@ -99,3 +99,4 @@ function InfoCard({
     </Card>
   );
 }
+
